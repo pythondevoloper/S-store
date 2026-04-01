@@ -1,0 +1,92 @@
+[
+  {
+    "id": "1",
+    "name": "iPhone 15 Pro",
+    "category": "Electronics",
+    "price": 999,
+    "image": "https://picsum.photos/seed/iphone15/400/400",
+    "description": "The ultimate iPhone with titanium design and A17 Pro chip.",
+    "specs": {
+      "Display": "6.1-inch Super Retina XDR",
+      "Processor": "A17 Pro chip",
+      "Camera": "48MP Main | Ultra Wide | Telephoto",
+      "Battery": "Up to 23 hours video playback",
+      "Warranty": "1 Year Apple Care"
+    }
+  },
+  {
+    "id": "2",
+    "name": "MacBook Air M3",
+    "category": "Electronics",
+    "price": 1099,
+    "image": "https://picsum.photos/seed/macbook/400/400",
+    "description": "Strikingly thin and fast, so you can work, play, or create anywhere.",
+    "specs": {
+      "Display": "13.6-inch Liquid Retina",
+      "Processor": "Apple M3 chip",
+      "RAM": "8GB / 16GB Unified Memory",
+      "Storage": "256GB / 512GB SSD",
+      "Warranty": "1 Year Limited"
+    }
+  },
+  {
+    "id": "3",
+    "name": "Sony WH-1000XM5",
+    "category": "Electronics",
+    "price": 399,
+    "image": "https://picsum.photos/seed/sonyheadphones/400/400",
+    "description": "Industry-leading noise cancellation and magnificent sound.",
+    "specs": {
+      "Type": "Over-ear",
+      "Connectivity": "Bluetooth 5.2",
+      "Battery": "Up to 30 hours",
+      "NoiseCancelling": "Yes",
+      "Warranty": "1 Year Sony"
+    }
+  },
+  {
+    "id": "4",
+    "name": "Mechanical Keyboard",
+    "category": "Accessories",
+    "price": 129,
+    "image": "https://picsum.photos/seed/keyboard/400/400",
+    "description": "Tactile, responsive, and built for performance.",
+    "specs": {
+      "Switches": "Cherry MX Blue",
+      "Backlight": "RGB Customizable",
+      "Layout": "Tenkeyless (TKL)",
+      "Connection": "USB-C Detachable",
+      "Warranty": "2 Years"
+    }
+  },
+  {
+    "id": "5",
+    "name": "Type-C Fast Charger",
+    "category": "Accessories",
+    "price": 29,
+    "image": "https://picsum.photos/seed/charger/400/400",
+    "description": "Ultra-fast charging for all your USB-C devices.",
+    "specs": {
+      "Power": "65W GaN",
+      "Ports": "1 x USB-C",
+      "Compatibility": "Universal",
+      "Safety": "Over-current Protection",
+      "Warranty": "6 Months"
+    }
+  },
+  {
+    "id": "6",
+    "name": "Gaming Mouse",
+    "category": "Accessories",
+    "price": 79,
+    "image": "https://picsum.photos/seed/mouse/400/400",
+    "description": "Precision tracking and ergonomic design for long gaming sessions.",
+    "specs": {
+      "DPI": "Up to 25,600",
+      "Sensor": "HERO 25K",
+      "Weight": "80g",
+      "Buttons": "6 Programmable",
+      "Warranty": "2 Years"
+    }
+  }
+]
