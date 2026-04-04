@@ -12,7 +12,9 @@
       "Camera": "48MP Main | Ultra Wide | Telephoto",
       "Battery": "Up to 23 hours video playback",
       "Warranty": "1 Year Apple Care"
-    }
+    },
+    "3dModelUrl": "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+    "stockQuantity": 10
   },
   {
     "id": "2",
@@ -27,7 +29,8 @@
       "RAM": "8GB / 16GB Unified Memory",
       "Storage": "256GB / 512GB SSD",
       "Warranty": "1 Year Limited"
-    }
+    },
+    "stockQuantity": 4
   },
   {
     "id": "3",
@@ -42,7 +45,8 @@
       "Battery": "Up to 30 hours",
       "NoiseCancelling": "Yes",
       "Warranty": "1 Year Sony"
-    }
+    },
+    "stockQuantity": 15
   },
   {
     "id": "4",
@@ -57,7 +61,8 @@
       "Layout": "Tenkeyless (TKL)",
       "Connection": "USB-C Detachable",
       "Warranty": "2 Years"
-    }
+    },
+    "stockQuantity": 20
   },
   {
     "id": "5",
@@ -72,7 +77,8 @@
       "Compatibility": "Universal",
       "Safety": "Over-current Protection",
       "Warranty": "6 Months"
-    }
+    },
+    "stockQuantity": 50
   },
   {
     "id": "6",
@@ -87,6 +93,7 @@
       "Weight": "80g",
       "Buttons": "6 Programmable",
       "Warranty": "2 Years"
-    }
+    },
+    "stockQuantity": 0
   }
 ]

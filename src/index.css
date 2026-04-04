@@ -9,7 +9,22 @@
 
 @layer base {
   body {
-    @apply bg-brand-bg text-white font-sans antialiased;
+    @apply bg-brand-bg text-white font-sans antialiased transition-colors duration-500;
+  }
+
+  .midnight {
+    --color-brand-bg: #020617;
+    --color-brand-accent: #22d3ee;
+    --color-brand-glass: rgba(15, 23, 42, 0.8);
+    --color-brand-glass-border: rgba(34, 211, 238, 0.3);
+  }
+  
+  .midnight .glass {
+    @apply shadow-[0_0_20px_rgba(34,211,238,0.1)];
+  }
+
+  .midnight .btn-primary {
+    @apply shadow-[0_0_25px_rgba(34,211,238,0.4)] brightness-90;
   }
 }
 

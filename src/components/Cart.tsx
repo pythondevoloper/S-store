@@ -1,6 +1,7 @@
 import { Product, CartItem } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { formatCurrency } from "../utils/currency";
 
 interface CartProps {
   isOpen: boolean;
@@ -9,9 +10,11 @@ interface CartProps {
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
   onCheckout: () => void;
+  isUzsMode: boolean;
+  exchangeRate: number;
 }
 
-export default function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemove, onCheckout }: CartProps) {
+export default function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemove, onCheckout, isUzsMode, exchangeRate }: CartProps) {
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
@@ -59,7 +62,7 @@ export default function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemov
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold truncate">{item.name}</h4>
-                      <p className="text-brand-accent font-bold text-sm">${item.price}</p>
+                      <p className="text-brand-accent font-bold text-sm">{formatCurrency(item.price, isUzsMode, exchangeRate)}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <div className="flex items-center border border-white/10 rounded-lg">
                           <button
@@ -93,7 +96,7 @@ export default function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemov
               <div className="p-6 border-t border-white/10 space-y-4">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total</span>
-                  <span className="text-brand-accent">${total.toFixed(2)}</span>
+                  <span className="text-brand-accent">{formatCurrency(total, isUzsMode, exchangeRate)}</span>
                 </div>
                 <button
                   onClick={onCheckout}

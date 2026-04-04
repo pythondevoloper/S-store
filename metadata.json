@@ -1,5 +1,5 @@
 {
   "name": "S STORE - Futuristic Tech Shop",
   "description": "A high-tech, dark-themed e-commerce experience for premium electronics and accessories.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera"]
 }
