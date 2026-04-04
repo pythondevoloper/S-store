@@ -7,57 +7,40 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from dotenv import load_dotenv
 
-# Muhit o'zgaruvchilari
-load_dotenv()
+# Render Environment Variables
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ADMIN_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# 1. FLASK (VEB-SAYT) QISMI
+# 1. VEB-SAYT (FLASK) QISMI
 app = Flask(__name__)
 
 @app.route('/')
 def home():
+    # Sayt dizayni (HTML/CSS)
     return """
     <!DOCTYPE html>
-    <html lang="uz">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>S STORE - Online Do'kon</title>
+        <title>S STORE - Aksessuarlar</title>
         <style>
-            body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .header { background: #0088cc; color: white; width: 100%; padding: 20px; text-align: center; border-radius: 0 0 20px 20px; margin-bottom: 30px; font-size: 24px; font-weight: bold; }
-            .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 1000px; width: 100%; }
-            .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
-            .card h3 { margin: 10px 0; color: #333; }
-            .price { font-size: 1.2em; color: #e74c3c; font-weight: bold; margin: 10px 0; }
-            .btn { background: #0088cc; color: white; text-decoration: none; padding: 10px 25px; border-radius: 8px; display: inline-block; font-weight: bold; transition: 0.3s; }
-            .btn:hover { background: #006699; transform: scale(1.05); }
+            body { font-family: sans-serif; text-align: center; background-color: #f4f4f4; padding: 50px; }
+            .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: inline-block; width: 250px; }
+            .btn { background: #0088cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px; }
         </style>
     </head>
     <body>
-        <div class="header">S STORE ACCESSORIES</div>
-        <div class="container">
-            <div class="card">
-                <h3>iPhone 15 Pro Case</h3>
-                <p>Premium silikon chexol</p>
-                <div class="price">120 000 UZS</div>
-                <a href="https://t.me/SSTOREPaymet_bot?start=ORDER_1001_PRICE_120000" class="btn">Sotib olish</a>
-            </div>
-            <div class="card">
-                <h3>AirPods Pro 2</h3>
-                <p>Lux copy (Top sifat)</p>
-                <div class="price">350 000 UZS</div>
-                <a href="https://t.me/SSTOREPaymet_bot?start=ORDER_1002_PRICE_350000" class="btn">Sotib olish</a>
-            </div>
+        <h1>S STORE ACCESSORIES</h1>
+        <div class="card">
+            <h3>iPhone 15 Pro Case</h3>
+            <p>120 000 UZS</p>
+            <a href="https://t.me/SSTOREPaymet_bot?start=ORDER_1001_PRICE_120000" class="btn">Sotib olish</a>
         </div>
     </body>
     </html>
     """
 
-# 2. BOT QISMI
+# 2. TELEGRAM BOT (AIOGRAM) QISMI
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -72,31 +55,37 @@ async def start_handler(message: types.Message, state: FSMContext):
         try:
             parts = args[1].split("_")
             order_id, price = parts[1], parts[3]
-            await state.update_data(order_id=order_id, price=price)
+            await state.update_data(order_id=order_id)
             await state.set_state(OrderStates.waiting_for_receipt)
-            await message.answer(f"📦 Buyurtma #{order_id}\n💰 To'lov: {int(price):,} UZS\n\nIltimos, to'lov chekini rasm ko'rinishida yuboring.")
+            await message.answer(f"📦 Buyurtma #{order_id}\n💰 To'lov: {int(price):,} UZS\n\nIltimos, chekni rasm sifatida yuboring.")
         except:
-            await message.answer("❌ Havola xato.")
+            await message.answer("❌ Xato havola.")
     else:
-        await message.answer("S STORE Botiga xush kelibsiz! Saytdan mahsulot tanlang.")
+        await message.answer("S STORE Botiga xush kelibsiz!")
 
 @dp.message(OrderStates.waiting_for_receipt, F.photo)
 async def handle_receipt(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    order_id = data.get("order_id")
-    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"📩 Yangi to'lov!\nID: #{order_id}\nKimdan: {message.from_user.full_name}")
+    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"📩 Yangi to'lov: #{data.get('order_id')}")
     await message.answer("⏳ To'lov yuborildi, admin tasdiqlashini kuting.")
     await state.clear()
 
-# 3. SERVERNI ISHGA TUSHIRISH
+# 3. ISHGA TUSHIRISH (PORT VA CONFLICT MUAMMOSI YECHIMI)
 def run_flask():
+    # Render talab qiladigan portni sozlash
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
 async def main():
+    # Conflict xatosini oldini olish uchun webhookni tozalash
     await bot.delete_webhook(drop_pending_updates=True)
+    # Flaskni alohida oqimda ishga tushirish
     Thread(target=run_flask).start()
+    # Botni polling rejimida boshlash
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot to'xtatildi.")
