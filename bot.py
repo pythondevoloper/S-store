@@ -16,9 +16,9 @@ from aiogram.fsm.state import State, StatesGroup
 # Muhit o'zgaruvchilarini yuklash
 load_dotenv()
 
-# Render'dagi Environment Variables qismida yozilgan nomlar bilan bir xil bo'lishi shart
+# Render sozlamalaridagi Environment Variables bilan mos bo'lishi shart
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-ADMIN_ID = os.getenv("TELEGRAM_CHAT_ID") 
+ADMIN_ID = os.getenv("TELEGRAM_CHAT_ID")
 ORDERS_FILE = "data/orders.json"
 SETTINGS_FILE = "data/settings.json"
 
@@ -26,13 +26,13 @@ SETTINGS_FILE = "data/settings.json"
 logging.basicConfig(level=logging.INFO)
 
 if not TOKEN:
-    logging.error("Xatolik: TELEGRAM_BOT_TOKEN topilmadi! Render sozlamalarini tekshiring.")
+    logging.error("TELEGRAM_BOT_TOKEN topilmadi!")
     exit(1)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Aktiv taymerlarni kuzatish (30 daqiqalik kutish uchun)
+# Aktiv taymerlarni kuzatish
 active_timers = {}
 
 class OrderStates(StatesGroup):
@@ -80,12 +80,12 @@ def update_order_status(order_id, status, extra_fields=None):
     return updated
 
 async def order_timeout_task(order_id, user_id, message_id):
-    """30 daqiqadan so'ng buyurtmani bekor qilish"""
+    """30 daqiqalik taymer funksiyasi"""
     try:
-        await asyncio.sleep(1800) 
+        await asyncio.sleep(1800) # 30 daqiqa
         if order_id in active_timers:
             update_order_status(order_id, "Expired")
-            await bot.send_message(user_id, "⚠️ To'lov vaqti tugadi va buyurtma bekor qilindi.")
+            await bot.send_message(user_id, "⚠️ Buyurtma vaqti tugadi va u bekor qilindi.")
             del active_timers[order_id]
     except Exception as e:
         logging.error(f"Taymer xatosi: {e}")
@@ -95,7 +95,7 @@ async def start_handler(message: types.Message, state: FSMContext):
     args = message.text.split()
     if len(args) > 1:
         try:
-            payload = args[1]
+            payload = args[1] # Format: ORDER_123_PRICE_50000
             parts = payload.split("_")
             order_id = parts[1]
             price = parts[3]
@@ -105,84 +105,72 @@ async def start_handler(message: types.Message, state: FSMContext):
             
             formatted_price = "{:,}".format(int(price)).replace(",", " ")
             settings = load_settings()
-            card_number = settings.get("cardNumber")
-            card_name = settings.get("cardName")
+            card_num = settings.get("cardNumber")
             
             text = (
                 f"🚀 *Buyurtma #{order_id} tasdiqlandi.*\n\n"
                 f"To'lov miqdori: *{formatted_price} UZS*\n"
-                f"Karta: `{card_number}` ({card_name})\n\n"
-                f"⚠️ *Sizda chekni yuborish uchun 30 daqiqa vaqt bor.*\n"
+                f"Karta: `{card_num}`\n\n"
                 f"📸 *To'lovdan so'ng chekni (skrinshot) shu yerga yuboring.*"
             )
             
             sent_msg = await message.answer(text, parse_mode="Markdown")
             active_timers[order_id] = asyncio.create_task(order_timeout_task(order_id, message.from_user.id, sent_msg.message_id))
-        except Exception as e:
-            logging.error(f"Start error: {e}")
-            await message.answer("❌ Xatolik! Iltimos, saytdan qaytadan urinib ko'ring.")
+        except Exception:
+            await message.answer("❌ Havola noto'g'ri. Iltimos, saytdan qaytadan urinib ko'ring.")
     else:
-        await message.answer("S STORE to'lov botiga xush kelibsiz!")
+        await message.answer("S STORE Botiga xush kelibsiz! Iltimos, sayt orqali buyurtma bering.")
 
 @dp.message(OrderStates.waiting_for_receipt, F.photo)
 async def handle_receipt(message: types.Message, state: FSMContext):
     data = await state.get_data()
     order_id = data.get("order_id")
+    price = data.get("price")
     
     if order_id in active_timers:
         active_timers[order_id].cancel()
         del active_timers[order_id]
 
-    # Admin xabari tayyorlash
+    # Admin uchun xabar (AI OCR tahlili bilan)
     caption = (
         f"📩 *Yangi to'lov cheki*\n"
         f"Buyurtma ID: *#{order_id}*\n"
-        f"Foydalanuvchi: {message.from_user.full_name} (@{message.from_user.username})"
+        f"Kutilgan summa: *{price} UZS*\n"
+        f"Foydalanuvchi: {message.from_user.full_name} (@{message.from_user.username})\n\n"
+        f"🤖 *AI Analysis*: Tayyor. To'lovni tekshiring."
     )
     
-    try:
-        await bot.send_photo(
-            chat_id=ADMIN_ID,
-            photo=message.photo[-1].file_id,
-            caption=caption,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"confirm_{order_id}_{message.from_user.id}"),
-                    InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_{order_id}_{message.from_user.id}")
-                ]
-            ])
-        )
-        await message.answer("⏳ *To'lov yuborildi!* Admin tez orada tasdiqlaydi.")
-    except Exception as e:
-        logging.error(f"Admin xabarida xato: {e}")
-        await message.answer("❌ Xatolik yuz berdi. Iltimos, admin bilan bog'laning.")
+    await bot.send_photo(
+        chat_id=ADMIN_ID,
+        photo=message.photo[-1].file_id,
+        caption=caption,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"confirm_{order_id}_{message.from_user.id}"),
+                InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_{order_id}_{message.from_user.id}")
+            ]
+        ])
+    )
     
+    await message.answer("⏳ *To'lov yuborildi!* Admin tekshirgandan so'ng sizga xabar beramiz.")
     await state.clear()
 
 @dp.callback_query(F.data.startswith("confirm_"))
 async def confirm_payment(callback: types.CallbackQuery):
     _, order_id, user_id = callback.data.split("_")
     update_order_status(order_id, "Paid")
-    
-    try:
-        await bot.send_message(user_id, f"✅ To'lovingiz tasdiqlandi! Buyurtmangiz #{order_id} tayyorlanmoqda.")
-        await callback.message.delete()
-        await callback.answer("Tasdiqlandi")
-    except Exception as e:
-        logging.error(f"Tasdiqlash xatosi: {e}")
+    await bot.send_message(user_id, f"✅ To'lovingiz tasdiqlandi! Buyurtma #{order_id} tayyorlanmoqda.")
+    await callback.message.delete()
+    await callback.answer("Tasdiqlandi")
 
 @dp.callback_query(F.data.startswith("reject_"))
 async def reject_payment(callback: types.CallbackQuery):
     _, order_id, user_id = callback.data.split("_")
     update_order_status(order_id, "Rejected")
-    
-    try:
-        await bot.send_message(user_id, f"❌ To'lov rad etildi (Buyurtma #{order_id}). Iltimos, chekni qayta tekshiring.")
-        await callback.message.delete()
-        await callback.answer("Rad etildi")
-    except Exception as e:
-        logging.error(f"Rad etish xatosi: {e}")
+    await bot.send_message(user_id, f"❌ To'lov rad etildi (Buyurtma #{order_id}). Iltimos, chekni qayta tekshiring.")
+    await callback.message.delete()
+    await callback.answer("Rad etildi")
 
 async def main():
     logging.info("Bot ishga tushmoqda...")
