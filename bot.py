@@ -21,7 +21,48 @@ ADMIN_ID = os.getenv("TELEGRAM_CHAT_ID")
 app = Flask(__name__)
 
 @app.route('/')
+def home(@app.route('/')
 def home():
+    # Saytning ko'rinishi (HTML/CSS)
+    return """
+    <!DOCTYPE html>
+    <html lang="uz">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>S STORE - Online Do'kon</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
+            header { background-color: #2c3e50; color: white; width: 100%; padding: 20px 0; text-align: center; font-size: 24px; font-weight: bold; }
+            .container { display: flex; flex-wrap: wrap; justify-content: center; padding: 20px; gap: 20px; }
+            .card { background: white; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 280px; padding: 20px; text-align: center; transition: 0.3s; }
+            .card:hover { transform: translateY(-5px); }
+            .card img { width: 100%; border-radius: 10px; height: 180px; object-fit: cover; }
+            .price { font-size: 20px; color: #e74c3c; font-weight: bold; margin: 15px 0; }
+            .btn { background-color: #0088cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: bold; }
+            .btn:hover { background-color: #006699; }
+        </style>
+    </head>
+    <body>
+        <header>S STORE ACCESSORIES</header>
+        <div class="container">
+            <div class="card">
+                <h3>iPhone 15 Pro Case</h3>
+                <p>Premium sifatli chexol</p>
+                <div class="price">120 000 UZS</div>
+                <a href="https://t.me/SSTOREPaymet_bot?start=ORDER_1001_PRICE_120000" class="btn">Sotib olish</a>
+            </div>
+            
+            <div class="card">
+                <h3>AirPods Pro 2</h3>
+                <p>Lux copy (1:1)</p>
+                <div class="price)350 000 UZS</div>
+                <a href="https://t.me/SSTOREPaymet_bot?start=ORDER_1002_PRICE_350000" class="btn">Sotib olish</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """):
     return "<h1>S STORE Sayti va Boti ishlamoqda!</h1><p>Render'da muvaffaqiyatli ishga tushdi.</p>"
 
 # 2. BOT QISMI
