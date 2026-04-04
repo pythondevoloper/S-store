@@ -1,10 +1,17 @@
+# Railway-ga ham Node, ham Python kerakligini aytamiz
+providers = ["node", "python"]
+
 [phases.setup]
-nixPkgs = ["nodePackages.npm", "python311"]
+# Tizimga kerakli dasturlarni o'rnatamiz
+nixPkgs = ["nodejs", "python311", "python311Packages.pip"]
 
 [phases.install]
+# Har ikkala til uchun kutubxonalarni o'rnatamiz
 cmds = [
     "npm install",
-    "python3 -m ensurepip",
-    "python3 -m pip install -U pip",
     "python3 -m pip install -r requirements.txt"
 ]
+
+[start]
+# Botni va serverni ishga tushirish buyrug'i
+cmd = "npx tsx server.ts"
