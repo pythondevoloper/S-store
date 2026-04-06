@@ -1,6 +1,3 @@
 aiogram
 python-dotenv
 aiohttp
-requests
-gunicorn
-flask
