@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import logging
+import requests
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
@@ -15,13 +16,42 @@ from aiogram.fsm.state import State, StatesGroup
 # Load environment variables
 load_dotenv()
 
-TOKEN = os.getenv("8526012270:AAFxDc8QZOYmMcwITWYJ-AqgttZIxg1U5bQ")
-ADMIN_ID = os.getenv(" 8193831651") # Using the existing one
+def load_settings():
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        logging.error(f"Error loading settings: {e}")
+    return {"cardNumber": "8600 0000 0000 0000", "cardName": "Shohidbek M.", "bots": []}
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_ID = os.getenv("TELEGRAM_CHAT_ID")
 ORDERS_FILE = "data/orders.json"
 SETTINGS_FILE = "data/settings.json"
 
+# If token is missing, try loading from settings.json
+if not TOKEN:
+    settings = load_settings()
+    active_bot = next((b for b in settings.get("bots", []) if b.get("status") == "active"), None)
+    if not active_bot and settings.get("bots"):
+        active_bot = settings["bots"][0]
+    
+    if active_bot:
+        TOKEN = active_bot.get("token")
+        logging.info(f"Loaded token from settings.json for bot {active_bot.get('username')}")
+
+if not TOKEN:
+    logging.error("CRITICAL: TELEGRAM_BOT_TOKEN is not set in environment or settings.json!")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+if not TOKEN:
+    # We can't initialize the bot without a token.
+    # But we'll let it fail at Bot(token=TOKEN) to match the previous behavior
+    # but with a clearer error message above.
+    pass
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -41,15 +71,6 @@ def load_orders():
     except Exception as e:
         logging.error(f"Error loading orders: {e}")
     return []
-
-def load_settings():
-    try:
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-    except Exception as e:
-        logging.error(f"Error loading settings: {e}")
-    return {"cardNumber": "8600 0000 0000 0000", "cardName": "Shohidbek M."}
 
 def save_orders(orders):
     try:
