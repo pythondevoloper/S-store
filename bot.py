@@ -335,8 +335,13 @@ async def handle_receipt(message: types.Message, state: FSMContext):
         ])
     )
     
-    # Store admin_message_id in orders.json
-    update_order_status(order_id, "Awaiting Approval", {"admin_message_id": admin_msg.message_id})
+    # Store admin_message_id, userId, and OCR results in orders.json
+    update_order_status(order_id, "Awaiting Approval", {
+        "admin_message_id": admin_msg.message_id,
+        "userId": message.from_user.id,
+        "ocr_amount": extracted_amount,
+        "ai_match": ai_match
+    })
     
     await message.answer("⏳ *To'lov tekshirilmoqda...* Admin tez orada to'lovingizni tasdiqlaydi. Sizga xabar beramiz.")
     await state.clear()
@@ -378,6 +383,26 @@ async def reject_payment(callback: types.CallbackQuery):
         logging.error(f"Error deleting admin message: {e}")
         
     await callback.answer("To'lov rad etildi.")
+
+@dp.callback_query(F.data.startswith("pay_confirm_"))
+async def pay_confirm_handler(callback: types.CallbackQuery):
+    order_id = callback.data.replace("pay_confirm_", "")
+    update_order_status(order_id, "Paid")
+    await callback.message.edit_caption(
+        caption=callback.message.caption + "\n\n✅ *TASDIQLANDI*",
+        parse_mode="Markdown"
+    )
+    await callback.answer("Buyurtma tasdiqlandi.")
+
+@dp.callback_query(F.data.startswith("pay_cancel_"))
+async def pay_cancel_handler(callback: types.CallbackQuery):
+    order_id = callback.data.replace("pay_cancel_", "")
+    update_order_status(order_id, "Rejected")
+    await callback.message.edit_caption(
+        caption=callback.message.caption + "\n\n❌ *BEKOR QILINDI*",
+        parse_mode="Markdown"
+    )
+    await callback.answer("Buyurtma bekor qilindi.")
 
 async def main():
     print("Bot is starting...")

@@ -96,6 +96,11 @@ async function writeProducts(products: any[]) {
 let botProcess: any = null;
 
 async function startBot() {
+  if (process.env.DISABLE_TELEGRAM_BOT === "true") {
+    console.log("Telegram Bot is disabled via environment variable. Skipping startBot.");
+    return;
+  }
+
   if (botProcess) {
     botProcess.kill();
   }

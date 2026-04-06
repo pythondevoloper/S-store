@@ -359,7 +359,16 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                             <span className="text-[10px] text-gray-500">{order.phone || order.email}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-4 font-black">${order.total?.toLocaleString()}</td>
+                        <td className="py-4 px-4">
+                          <div className="flex flex-col">
+                            <span className="font-black">${order.total?.toLocaleString()}</span>
+                            {order.ocr_amount && (
+                              <span className={`text-[8px] font-bold ${order.ai_match?.includes("✅") ? "text-green-500" : "text-red-500"}`}>
+                                AI: ${order.ocr_amount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-4 px-4">
                           <span className="px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase tracking-widest">
                             {order.status}
