@@ -13,6 +13,8 @@ import { Lock, ArrowLeft, Monitor, Zap, Camera, Scan, ShieldCheck, LayoutGrid, S
 import { formatCurrency } from "./utils/currency";
 import { Language, translations } from "./translations";
 import confetti from "canvas-confetti";
+import { auth, signInWithGoogle } from "./firebase";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -161,6 +163,7 @@ export default function App() {
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [activeGroup, setActiveGroup] = useState<any>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   // One-Click Checkout State
   const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
@@ -182,6 +185,24 @@ export default function App() {
 
   // Image Search State
   const [isImageSearchLoading, setIsImageSearchLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser?.email) {
+        setProfileEmail(currentUser.email);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
 
   const fetchRecentSales = async () => {
     try {
@@ -693,55 +714,6 @@ export default function App() {
     }
   };
 
-  const [isFaceIDOpen, setIsFaceIDOpen] = useState(false);
-  const [faceIDStatus, setFaceIDStatus] = useState<"init" | "scanning" | "verifying" | "granted">("init");
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-
-  const startFaceID = async () => {
-    setIsFaceIDOpen(true);
-    setFaceIDStatus("init");
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      setTimeout(() => setFaceIDStatus("scanning"), 1000);
-      setTimeout(() => setFaceIDStatus("verifying"), 2500);
-      
-      setTimeout(async () => {
-        setFaceIDStatus("granted");
-        
-        // Finalize backend auth
-        try {
-          const res = await fetch("/api/admin/face-auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin" })
-          });
-          const data = await res.json();
-          
-          if (data.success) {
-            setTimeout(() => {
-              setAdminUser(data.user);
-              setIsAdminAuthenticated(true);
-              setIsFaceIDOpen(false);
-              // Stop stream
-              stream.getTracks().forEach(track => track.stop());
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Face-ID Auth Error:", error);
-        }
-      }, 4000);
-
-    } catch (error) {
-      console.error("Camera Access Denied:", error);
-      setIsFaceIDOpen(false);
-    }
-  };
-
   const handleFastCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fastCheckoutProduct || !fastCheckoutName || !fastCheckoutPhone) return;
@@ -919,6 +891,8 @@ export default function App() {
               onTrackClick={() => setIsTrackingOpen(true)}
               onWarrantyClick={() => setIsWarrantyModalOpen(true)}
               onProfileClick={() => setIsProfileOpen(true)}
+              user={user}
+              onLogin={handleLogin}
             />
 
             {/* Fast Checkout Modal */}
@@ -1308,28 +1282,13 @@ export default function App() {
                   <form onSubmit={handleAdminLogin} className="space-y-8">
                     <div className="text-center space-y-4">
                       <div className="w-24 h-24 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto border border-brand-accent/20">
-                        <Scan className="w-12 h-12 text-brand-accent" />
+                        <Lock className="w-12 h-12 text-brand-accent" />
                       </div>
                       <h3 className="text-xl font-black tracking-tighter uppercase">SuperAdmin Verification</h3>
-                      <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Biometric authentication required</p>
+                      <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Enter security key to continue</p>
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      <button
-                        type="button"
-                        onClick={startFaceID}
-                        className="w-full py-5 rounded-2xl bg-brand-accent text-brand-bg font-black tracking-widest uppercase flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:shadow-[0_0_50px_rgba(0,212,255,0.6)] transition-all group"
-                      >
-                        <Scan className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        Login with Face-ID
-                      </button>
-
-                      <div className="flex items-center gap-4">
-                        <div className="h-px flex-1 bg-white/10" />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase">Legacy Access</span>
-                        <div className="h-px flex-1 bg-white/10" />
-                      </div>
-
                       <div className="space-y-2">
                         <input
                           disabled={isScanning}
@@ -1345,9 +1304,9 @@ export default function App() {
                       <button 
                         disabled={isScanning || !adminPassword}
                         type="submit" 
-                        className="w-full py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                        className="w-full py-4 rounded-xl bg-brand-accent text-brand-bg font-black tracking-widest uppercase shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:shadow-[0_0_50px_rgba(0,212,255,0.6)] transition-all disabled:opacity-50"
                       >
-                        {isScanning ? "Verifying..." : "Standard Login"}
+                        {isScanning ? "Verifying..." : "Login to Admin"}
                       </button>
                     </div>
 
@@ -1511,94 +1470,6 @@ export default function App() {
                   )}
                 </motion.div>
               )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Face-ID Simulation Modal */}
-      <AnimatePresence>
-        {isFaceIDOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-brand-bg/90 backdrop-blur-xl"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="glass p-12 rounded-[40px] w-full max-w-md text-center space-y-8 relative overflow-hidden"
-            >
-              <div className="relative w-64 h-64 mx-auto">
-                {/* Camera Feed */}
-                <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-white/10 bg-black">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
-                </div>
-
-                {/* Scanning Overlay */}
-                {faceIDStatus !== "granted" && (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="absolute -inset-2 border-2 border-dashed border-brand-accent/30 rounded-full"
-                    />
-                    <motion.div
-                      animate={{ top: ["10%", "90%", "10%"] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute left-4 right-4 h-0.5 bg-brand-accent shadow-[0_0_15px_#00d4ff] z-10"
-                    />
-                  </>
-                )}
-
-                {/* Success Overlay */}
-                {faceIDStatus === "granted" && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute inset-0 bg-brand-accent/20 backdrop-blur-sm flex items-center justify-center rounded-full z-20"
-                  >
-                    <div className="bg-brand-accent p-4 rounded-full shadow-[0_0_30px_#00d4ff]">
-                      <ShieldCheck className="w-12 h-12 text-brand-bg" />
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black tracking-tighter">
-                  {faceIDStatus === "init" && "INITIALIZING CAMERA..."}
-                  {faceIDStatus === "scanning" && "SCANNING FACE..."}
-                  {faceIDStatus === "verifying" && "VERIFYING BIOMETRICS..."}
-                  {faceIDStatus === "granted" && "ACCESS GRANTED!"}
-                </h3>
-                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">
-                  {faceIDStatus === "init" && "Please look at the camera"}
-                  {faceIDStatus === "scanning" && "Neural match in progress"}
-                  {faceIDStatus === "verifying" && "Checking SuperAdmin credentials"}
-                  {faceIDStatus === "granted" && "Welcome back, Admin"}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsFaceIDOpen(false);
-                  if (videoRef.current?.srcObject) {
-                    (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-                  }
-                }}
-                className="text-gray-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-              >
-                Cancel Authentication
-              </button>
             </motion.div>
           </motion.div>
         )}
@@ -1847,14 +1718,33 @@ export default function App() {
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="flex items-center gap-6 mb-12">
-                <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center border border-brand-accent/30">
-                  <User className="w-10 h-10 text-brand-accent" />
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center border border-brand-accent/30 overflow-hidden">
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || ""} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-10 h-10 text-brand-accent" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tighter uppercase">{user?.displayName || "Mening profilim"}</h2>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">{user?.email || "User Spending Analytics"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-4xl font-black tracking-tighter uppercase">Mening profilim</h2>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">User Spending Analytics</p>
-                </div>
+                {user && (
+                  <button
+                    onClick={() => {
+                      import("./firebase").then(m => m.logout());
+                      setIsProfileOpen(false);
+                      setUserAnalytics(null);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
+                  >
+                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                    Chiqish
+                  </button>
+                )}
               </div>
 
               {!userAnalytics ? (

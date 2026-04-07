@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, CheckCircle2, CreditCard, User, Mail, MapPin, Phone, Cpu, Clock, AlertCircle, Gift } from "lucide-react";
+import { X, CheckCircle2, CreditCard, User, Mail, MapPin, Phone, Cpu, Clock, AlertCircle, Gift, Smartphone } from "lucide-react";
 import { formatCurrency } from "../utils/currency";
 
 interface CheckoutProps {
@@ -26,7 +26,13 @@ interface CheckoutProps {
   userLevel?: string;
   isUzsMode: boolean;
   exchangeRate: number;
-  settings: { cardNumber: string; cardName: string };
+  settings: { 
+    cardNumber: string; 
+    cardName: string; 
+    paymentType: "card" | "wallet";
+    walletNumber: string;
+    walletName: string;
+  };
 }
 
 export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cartTotal, userLevel, isUzsMode, exchangeRate, settings }: CheckoutProps) {
@@ -35,7 +41,7 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
     email: "",
     phone: "",
     address: "",
-    paymentMethod: "Telegram P2P",
+    paymentMethod: settings.paymentType === "wallet" ? "Click" : "Plastic Card",
     promoCode: "",
     giftWrapping: false,
     greetingCard: ""
@@ -105,6 +111,7 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
   const levelDiscount = userLevel === "Cyber Legend" ? 5 : 0;
   const totalDiscount = discount + levelDiscount;
   const finalTotal = cartTotal * (1 - totalDiscount / 100);
+  const finalTotalWithGift = finalTotal + (formData.giftWrapping ? 1 : 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +124,6 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
 
     setIsSubmitting(true);
     
-    const finalTotalWithGift = finalTotal + (formData.giftWrapping ? 1 : 0);
-
     // High-tech processing simulation
     await new Promise(resolve => setTimeout(resolve, 2500));
 
@@ -142,10 +147,14 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
       
       setOrderInfo(result);
 
-      if (formData.paymentMethod === "Telegram P2P") {
+      if (formData.paymentMethod === "Telegram P2P" || formData.paymentMethod === "Click" || formData.paymentMethod === "Plastic Card") {
         const totalUzs = Math.round(finalTotalWithGift * exchangeRate);
         const orderIdClean = result?.id?.replace("#S-", "") || "";
-        const telegramUrl = `https://t.me/SSTOREPaymet_bot?start=ORDER_${orderIdClean}_PRICE_${totalUzs}`;
+        
+        // If it's Click Wallet, we can use a Click Up link if we want, 
+        // but the current bot flow seems to handle confirmation.
+        // We'll just ensure the bot knows it's a Click payment.
+        const telegramUrl = `https://t.me/SSTOREPaymet_bot?start=ORDER_${orderIdClean}_PRICE_${totalUzs}_METHOD_${settings.paymentType === 'wallet' ? 'CLICK' : 'CARD'}`;
         
         // Wait a moment for the success animation then redirect
         setTimeout(() => {
@@ -377,22 +386,58 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
                         type="button"
                         className="py-4 rounded-2xl border bg-brand-accent/20 border-brand-accent text-brand-accent text-sm font-bold transition-all flex items-center justify-center gap-3"
                       >
-                        <CreditCard className="w-5 h-5" />
-                        Karta orqali to'lov (Telegram Bot)
+                        {settings.paymentType === "wallet" ? (
+                          <>
+                            <Smartphone className="w-5 h-5" />
+                            Click Up orqali to'lov (Hamyon)
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-5 h-5" />
+                            Karta orqali to'lov (Telegram Bot)
+                          </>
+                        )}
                       </button>
+                      
+                      {settings.paymentType === "wallet" && (
+                        <a
+                          href={`https://click.uz/pay/p2p?phone=${settings.walletNumber.replace(/\s+/g, '')}&amount=${Math.round(finalTotalWithGift * exchangeRate)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="py-3 rounded-xl bg-[#00AEEF] text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#0096ce] transition-all"
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          CLICK UP ILOVASIDA TO'LASH
+                        </a>
+                      )}
                     </div>
                   </div>
 
                   {/* Payment Info Box */}
                   <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Karta raqami:</span>
-                      <span className="font-mono font-bold text-brand-accent">{settings.cardNumber}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Ega:</span>
-                      <span className="font-bold">{settings.cardName}</span>
-                    </div>
+                    {settings.paymentType === "wallet" ? (
+                      <>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Hamyon raqami:</span>
+                          <span className="font-mono font-bold text-brand-accent">{settings.walletNumber}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Ega:</span>
+                          <span className="font-bold">{settings.walletName}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Karta raqami:</span>
+                          <span className="font-mono font-bold text-brand-accent">{settings.cardNumber}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Ega:</span>
+                          <span className="font-bold">{settings.cardName}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
                       <span className="text-gray-500">To'lov miqdori:</span>
                       <span className="text-lg font-black text-brand-accent">

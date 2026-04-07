@@ -1,8 +1,9 @@
-import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User } from "lucide-react";
+import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
 import React, { useState, useRef, useEffect } from "react";
 import { Language, translations } from "../translations";
+import { User as FirebaseUser } from "firebase/auth";
 
 interface NavbarProps {
   cartCount: number;
@@ -24,6 +25,8 @@ interface NavbarProps {
   onTrackClick: () => void;
   onWarrantyClick: () => void;
   onProfileClick: () => void;
+  user: FirebaseUser | null;
+  onLogin: () => void;
 }
 
 export default function Navbar({ 
@@ -45,7 +48,9 @@ export default function Navbar({
   onProductClick,
   onTrackClick,
   onWarrantyClick,
-  onProfileClick
+  onProfileClick,
+  user,
+  onLogin
 }: NavbarProps) {
   const [isListening, setIsListening] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -259,15 +264,26 @@ export default function Navbar({
           <ShieldCheck className="w-6 h-6" />
         </button>
 
-        {/* Profile Button */}
+        {/* Profile/Login Button */}
         <button
-          onClick={onProfileClick}
-          className={`p-2 rounded-full transition-all ${
+          onClick={user ? onProfileClick : onLogin}
+          className={`p-2 rounded-full transition-all flex items-center gap-2 ${
             theme === "dark" ? "hover:bg-white/5 text-gray-400" : "hover:bg-gray-100 text-gray-600"
           }`}
-          title="Mening profilim"
+          title={user ? "Mening profilim" : "Kirish"}
         >
-          <User className="w-6 h-6" />
+          {user ? (
+            user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || ""} className="w-6 h-6 rounded-full border border-brand-accent/30" />
+            ) : (
+              <User className="w-6 h-6" />
+            )
+          ) : (
+            <div className="flex items-center gap-2">
+              <LogIn className="w-6 h-6 text-brand-accent" />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Kirish</span>
+            </div>
+          )}
         </button>
 
         {/* Theme Toggle */}

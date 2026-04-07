@@ -5,6 +5,8 @@ import { formatCurrency } from "../utils/currency";
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { Language, translations } from "../translations";
+import { db, auth, handleFirestoreError, OperationType } from "../firebase";
+import { collection, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
 
 interface ProductDetailsProps {
   product: Product | null;
@@ -26,6 +28,7 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
   const [reviewImage, setReviewImage] = useState<string | null>(null);
   const [reviewVideo, setReviewVideo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -37,6 +40,35 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
   const [activeGroup, setActiveGroup] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[language];
+
+  useEffect(() => {
+    if (!product) return;
+    
+    const reviewsRef = collection(db, "products", product.id, "reviews");
+    const q = query(reviewsRef, orderBy("createdAt", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const revs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        } as Review;
+      });
+      setReviews(revs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `products/${product.id}/reviews`);
+    });
+
+    return () => unsubscribe();
+  }, [product]);
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      setUserName(auth.currentUser.displayName || "");
+    }
+  }, []);
 
   useEffect(() => {
     const savedGroup = localStorage.getItem("active_group");
@@ -170,8 +202,8 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
     }
   };
 
-  const averageRating = product?.reviews?.length 
-    ? (product.reviews.reduce((acc, r) => acc + r.rating, 0) / product.reviews.length).toFixed(1)
+  const averageRating = reviews.length 
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
     : null;
 
   return (
@@ -216,7 +248,7 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
                       <div className="flex items-center gap-1 bg-yellow-500/10 px-2 py-1 rounded-lg border border-yellow-500/20">
                         <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                         <span className="text-xs font-bold text-yellow-500">{averageRating}</span>
-                        <span className="text-[10px] text-yellow-500/60">({product.reviews?.length})</span>
+                        <span className="text-[10px] text-yellow-500/60">({reviews.length})</span>
                       </div>
                     )}
                   </div>
@@ -347,7 +379,7 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
                 <div>
                   <h4 className="text-sm font-bold text-gray-400 uppercase tracking-tighter mb-2">{t.specs}</h4>
                   <div className="border border-white/10 rounded-xl overflow-hidden">
-                    {Object.entries(product.specs).map(([key, value], idx) => (
+                    {Object.entries(product.specs || {}).map(([key, value], idx) => (
                       <div key={key} className={`flex justify-between p-3 text-sm ${idx % 2 === 0 ? 'bg-white/5' : ''}`}>
                         <span className="text-gray-400">{key}</span>
                         <span className="font-medium">{value}</span>
@@ -367,7 +399,7 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-tighter">{t.reviews}</h4>
-                    <span className="text-[10px] font-bold text-gray-600 uppercase">{product.reviews?.length || 0} Comments</span>
+                    <span className="text-[10px] font-bold text-gray-600 uppercase">{reviews.length} Comments</span>
                   </div>
 
                   {/* Review Form */}
@@ -490,10 +522,10 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
 
                   {/* Review List */}
                   <div className="space-y-4">
-                    {product.reviews?.length === 0 ? (
+                    {reviews.length === 0 ? (
                       <p className="text-xs text-gray-600 text-center italic">No reviews yet. Be the first to review!</p>
                     ) : (
-                      product.reviews?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((review) => (
+                      reviews.map((review) => (
                         <div key={review.id} className="glass p-4 rounded-2xl border border-white/5 space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-bold text-brand-accent">{review.userName}</span>

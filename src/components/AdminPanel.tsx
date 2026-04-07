@@ -5,6 +5,8 @@ import { Plus, Trash2, LogOut, Package, Image as ImageIcon, Tag, Hash, FileText,
 import AdminSettings from "./AdminSettings";
 import Dashboard from "./Dashboard";
 import BotManager from "./BotManager";
+import { db, handleFirestoreError, OperationType } from "../firebase";
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDocs } from "firebase/firestore";
 
 interface AdminPanelProps {
   products: Product[];
@@ -71,10 +73,26 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
 
   useEffect(() => {
     if (isSuperAdmin) {
-      fetchAdminPromos();
+      // Real-time orders
+      const ordersRef = collection(db, "orders");
+      const qOrders = query(ordersRef, orderBy("createdAt", "desc"));
+      const unsubOrders = onSnapshot(qOrders, (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      // Real-time promos
+      const promosRef = collection(db, "promocodes");
+      const unsubPromos = onSnapshot(promosRef, (snapshot) => {
+        setPromoCodes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromoCode)));
+      });
+
       fetchAnalytics();
       fetchDiagnostics();
-      fetchOrders();
+
+      return () => {
+        unsubOrders();
+        unsubPromos();
+      };
     }
   }, [isSuperAdmin]);
 
@@ -519,7 +537,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Sales</p>
-                  <h4 className="text-3xl font-black tracking-tighter">${analytics.totalSales.toLocaleString()}</h4>
+                  <h4 className="text-3xl font-black tracking-tighter">${(analytics.totalSales || 0).toLocaleString()}</h4>
                 </div>
               </div>
 
@@ -529,7 +547,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Orders</p>
-                  <h4 className="text-3xl font-black tracking-tighter">{analytics.totalOrders}</h4>
+                  <h4 className="text-3xl font-black tracking-tighter">{analytics.totalOrders || 0}</h4>
                 </div>
               </div>
 
@@ -561,11 +579,11 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                       </tr>
                     </thead>
                     <tbody>
-                      {analytics.affiliateStats.map((aff) => (
+                      {analytics.affiliateStats?.map((aff) => (
                         <tr key={aff.token} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                           <td className="py-4 px-4 font-bold">{aff.username}</td>
                           <td className="py-4 px-4 font-mono text-xs text-brand-accent">{aff.token}</td>
-                          <td className="py-4 px-4 font-black text-green-500">${aff.balance.toFixed(2)}</td>
+                          <td className="py-4 px-4 font-black text-green-500">${(aff.balance || 0).toFixed(2)}</td>
                           <td className="py-4 px-4 text-right">
                             <button className="px-4 py-2 bg-brand-accent/10 text-brand-accent rounded-xl text-[10px] font-black tracking-widest uppercase hover:bg-brand-accent hover:text-brand-bg transition-all">
                               Payout
@@ -586,8 +604,8 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                   <BarChart3 className="w-5 h-5 text-brand-accent" /> Sales Growth (Last 7 Days)
                 </h3>
                 <div className="h-64 flex items-end gap-4 px-4">
-                  {analytics.salesChart.map((day, i) => {
-                    const maxVal = Math.max(...analytics.salesChart.map(d => d.total)) || 1;
+                  {analytics.salesChart?.map((day, i) => {
+                    const maxVal = Math.max(...(analytics.salesChart?.map(d => d.total) || [1])) || 1;
                     const height = (day.total / maxVal) * 100;
                     return (
                       <div key={day.date} className="flex-1 flex flex-col items-center gap-4 group">
@@ -616,7 +634,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                   <Star className="w-5 h-5 text-yellow-500" /> Top Selling Products
                 </h3>
                 <div className="space-y-4">
-                  {analytics.topProducts.map((product, i) => (
+                  {analytics.topProducts?.map((product, i) => (
                     <div key={product.name} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                       <div className="w-8 h-8 bg-brand-accent/10 rounded-lg flex items-center justify-center text-brand-accent font-black text-xs">
                         #{i + 1}
@@ -628,7 +646,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                       <div className="h-2 w-24 bg-white/5 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${(product.quantity / analytics.topProducts[0].quantity) * 100}%` }}
+                          animate={{ width: `${(product.quantity / (analytics.topProducts?.[0]?.quantity || 1)) * 100}%` }}
                           className="h-full bg-brand-accent shadow-[0_0_10px_#00d4ff]"
                         />
                       </div>
@@ -677,7 +695,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                 <Activity className="w-5 h-5 text-brand-accent" /> Server Logs (Recent 100)
               </h3>
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
-                {diagnostics.logs.map((log: any) => (
+                {diagnostics.logs?.map((log: any) => (
                   <div key={log.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex gap-4 items-start">
                     <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase ${log.type === "ERROR" ? "bg-red-500/20 text-red-500" : "bg-brand-accent/20 text-brand-accent"}`}>
                       {log.type}
@@ -688,7 +706,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                     </div>
                   </div>
                 ))}
-                {diagnostics.logs.length === 0 && (
+                {diagnostics.logs?.length === 0 && (
                   <div className="text-center py-12 text-gray-500 font-bold uppercase tracking-widest">
                     No logs found.
                   </div>

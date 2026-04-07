@@ -1043,18 +1043,6 @@ async function startServer() {
     res.status(204).send();
   });
 
-  app.post("/api/admin/face-auth", async (req, res) => {
-    const { username } = req.body;
-    const users = await readUsers();
-    const user = users.find((u: any) => u.username === username && u.role === "SuperAdmin");
-
-    if (user) {
-      res.json({ success: true, user });
-    } else {
-      res.status(401).json({ message: "Face-ID verification failed. SuperAdmin only." });
-    }
-  });
-
   app.get("/api/order-status/:id", async (req, res) => {
     const { id } = req.params;
     const orders = await readOrders();
@@ -1637,21 +1625,6 @@ Iltimos, quyidagi tugma orqali to'lovni amalga oshiring:
     res.status(201).json(newGroup);
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
   app.post("/api/ocr/receipt", async (req, res) => {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
@@ -1684,6 +1657,21 @@ Iltimos, quyidagi tugma orqali to'lovni amalga oshiring:
       res.status(500).json({ message: "OCR processing failed", error: error.message });
     }
   });
+
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
