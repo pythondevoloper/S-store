@@ -1,124 +1,46 @@
 {
   "entities": {
-    "Product": {
-      "title": "Product",
-      "description": "A product in the store",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "category": { "type": "string" },
-        "price": { "type": "number" },
-        "dynamicPrice": { "type": "number" },
-        "groupPrice": { "type": "number" },
-        "isTrending": { "type": "boolean" },
-        "viewCount": { "type": "number" },
-        "image": { "type": "string" },
-        "description": { "type": "string" },
-        "specs": { "type": "object" },
-        "stockQuantity": { "type": "number" },
-        "3dModelUrl": { "type": "string" }
-      },
-      "required": ["name", "price", "category", "image", "description", "stockQuantity"]
-    },
-    "Review": {
-      "title": "Review",
-      "description": "A customer review for a product",
-      "type": "object",
-      "properties": {
-        "userName": { "type": "string" },
-        "rating": { "type": "number" },
-        "comment": { "type": "string" },
-        "reviewImage": { "type": "string" },
-        "videoUrl": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["userName", "rating", "comment", "createdAt"]
-    },
     "Order": {
       "title": "Order",
-      "description": "A customer order",
+      "description": "A customer order in the S STORE.",
       "type": "object",
       "properties": {
-        "customerName": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" },
-        "address": { "type": "string" },
-        "items": { "type": "array" },
-        "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["Pending", "Paid", "Processing", "Shipped", "Delivered", "Rejected", "Awaiting Approval", "Pending Payment", "Awaiting Payment"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "giftWrapping": { "type": "boolean" },
-        "greetingCard": { "type": "string" },
-        "groupId": { "type": "string" }
+        "id": { "type": "string", "description": "Unique order ID (e.g., #S-1234)" },
+        "customerName": { "type": "string", "description": "Full name of the customer" },
+        "email": { "type": "string", "description": "Email address of the customer" },
+        "phone": { "type": "string", "description": "Phone number of the customer" },
+        "address": { "type": "string", "description": "Shipping address" },
+        "paymentMethod": { "type": "string", "description": "Selected payment method" },
+        "promoCode": { "type": "string", "description": "Applied promo code" },
+        "total": { "type": "number", "description": "Total amount in USD" },
+        "testMode": { "type": "boolean", "description": "Whether the order is in test mode" },
+        "giftWrapping": { "type": "boolean", "description": "Whether gift wrapping is requested" },
+        "greetingCard": { "type": "string", "description": "Greeting card message" },
+        "groupId": { "type": "string", "description": "Group buy ID if applicable" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "quantity": { "type": "number" }
+            }
+          }
+        },
+        "ref": { "type": "string", "description": "Referral token" },
+        "exchangeRateUsed": { "type": "number", "description": "Exchange rate at the time of order" },
+        "status": { "type": "string", "description": "Current status of the order", "enum": ["Awaiting Payment", "Paid", "Cancelled", "Shipped", "Delivered"] },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the order was created" }
       },
-      "required": ["customerName", "email", "total", "status", "createdAt"]
-    },
-    "User": {
-      "title": "User",
-      "description": "User profile and analytics",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"] },
-        "affiliateBalance": { "type": "number" },
-        "affiliateToken": { "type": "string" },
-        "userLevel": { "type": "string" },
-        "totalSpent": { "type": "number" },
-        "orderCount": { "type": "number" }
-      },
-      "required": ["email", "role"]
-    },
-    "PromoCode": {
-      "title": "PromoCode",
-      "description": "A discount code",
-      "type": "object",
-      "properties": {
-        "code": { "type": "string" },
-        "discountPercentage": { "type": "number" },
-        "expiryDate": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      },
-      "required": ["code", "discountPercentage", "isActive"]
-    },
-    "Settings": {
-      "title": "Settings",
-      "description": "Global store settings",
-      "type": "object",
-      "properties": {
-        "logoBase64": { "type": "string" },
-        "cardNumber": { "type": "string" },
-        "cardName": { "type": "string" },
-        "paymentType": { "type": "string", "enum": ["card", "wallet"] },
-        "walletNumber": { "type": "string" },
-        "walletName": { "type": "string" },
-        "bots": { "type": "array" }
-      }
+      "required": ["id", "customerName", "email", "phone", "address", "total", "items", "status", "createdAt"]
     }
   },
   "firestore": {
-    "/products/{productId}": {
-      "schema": "Product",
-      "description": "Store products"
-    },
-    "/products/{productId}/reviews/{reviewId}": {
-      "schema": "Review",
-      "description": "Product reviews"
-    },
     "/orders/{orderId}": {
       "schema": "Order",
-      "description": "Customer orders"
-    },
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "User profiles"
-    },
-    "/promocodes/{promoId}": {
-      "schema": "PromoCode",
-      "description": "Promo codes"
-    },
-    "/settings/global": {
-      "schema": "Settings",
-      "description": "Global settings"
+      "description": "Collection of customer orders."
     }
   }
 }

@@ -2,182 +2,101 @@
 // Assumed Data Model
 // ===============================================================
 //
-// Collection: products
-// Document ID: productId
-// Fields:
-//   - name: string (required)
-//   - category: string (required)
-//   - price: number (required)
-//   - dynamicPrice: number (optional)
-//   - groupPrice: number (optional)
-//   - isTrending: boolean (optional)
-//   - viewCount: number (optional)
-//   - image: string (required)
-//   - description: string (required)
-//   - specs: map (optional)
-//   - stockQuantity: number (required)
-//   - 3dModelUrl: string (optional)
-//
-// Subcollection: products/{productId}/reviews
-// Document ID: reviewId
-// Fields:
-//   - userName: string (required)
-//   - rating: number (required, 1-5)
-//   - comment: string (required, < 1000 chars)
-//   - reviewImage: string (optional)
-//   - videoUrl: string (optional)
-//   - createdAt: timestamp (required)
-//
 // Collection: orders
-// Document ID: orderId
+// Document ID: orderId (e.g., #S-1234)
 // Fields:
+//   - id: string (required) - Unique order ID
 //   - customerName: string (required)
-//   - phone: string (required)
 //   - email: string (required)
+//   - phone: string (required)
 //   - address: string (required)
-//   - items: list (required)
+//   - paymentMethod: string
+//   - promoCode: string
 //   - total: number (required)
-//   - status: string (required, enum)
-//   - createdAt: timestamp (required)
-//   - giftWrapping: boolean (optional)
-//   - greetingCard: string (optional)
-//   - groupId: string (optional)
+//   - testMode: bool
+//   - giftWrapping: bool
+//   - greetingCard: string
+//   - groupId: string
+//   - items: list (required) - Array of objects {id, name, price, quantity}
+//   - ref: string
+//   - exchangeRateUsed: number
+//   - status: string (required) - ["Awaiting Payment", "Paid", "Cancelled", "Shipped", "Delivered"]
+//   - createdAt: string (required) - ISO 8601 timestamp
 //
 // Collection: users
-// Document ID: userId (auth.uid)
+// Document ID: userId
 // Fields:
-//   - email: string (required)
-//   - role: string (required, enum)
-//   - affiliateBalance: number (optional)
-//   - affiliateToken: string (optional)
-//   - userLevel: string (optional)
-//   - totalSpent: number (optional)
-//   - orderCount: number (optional)
-//
-// Collection: promocodes
-// Document ID: promoId
-// Fields:
-//   - code: string (required)
-//   - discountPercentage: number (required)
-//   - expiryDate: string (optional)
-//   - isActive: boolean (required)
-//
-// Collection: settings
-// Document ID: global
-// Fields:
-//   - logoBase64: string (optional)
-//   - cardNumber: string (optional)
-//   - cardName: string (optional)
-//   - paymentType: string (optional)
-//   - walletNumber: string (optional)
-//   - walletName: string (optional)
-//   - bots: list (optional)
+//   - username: string (email)
+//   - role: string - ["SuperAdmin", "User"]
+//   - sCoins: number
+//   - userLevel: string
 //
 // ===============================================================
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
-
+    
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'SuperAdmin'] ||
-          (request.auth.token.email == "computeruz559@gmail.com" && request.auth.token.email_verified == true));
-    }
-
-    function isSuperAdmin() {
-      return isAuthenticated() &&
+      return isAuthenticated() && 
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin' ||
-          (request.auth.token.email == "computeruz559@gmail.com" && request.auth.token.email_verified == true));
+         request.auth.token.email == "computeruz559@gmail.com");
     }
 
-    function isValidProduct(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
-             data.category is string &&
-             data.price is number && data.price >= 0 &&
-             data.image is string &&
-             data.description is string && data.description.size() < 5000 &&
-             data.stockQuantity is number && data.stockQuantity >= 0;
-    }
-
-    function isValidReview(data) {
-      return data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
-             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             data.comment is string && data.comment.size() > 0 && data.comment.size() < 1000 &&
-             data.createdAt is timestamp;
+    function isOwner(email) {
+      return isAuthenticated() && request.auth.token.email == email;
     }
 
     function isValidOrder(data) {
-      return data.customerName is string && data.customerName.size() > 0 &&
-             data.email is string &&
+      return data.id is string &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 20 &&
+             data.address is string && data.address.size() > 0 && data.address.size() < 500 &&
              data.total is number && data.total >= 0 &&
-             data.status in ["Pending", "Paid", "Processing", "Shipped", "Delivered", "Rejected", "Awaiting Approval", "Pending Payment", "Awaiting Payment"] &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidUser(data) {
-      return data.email is string &&
-             data.role in ["User", "Admin", "SuperAdmin"];
-    }
-
-    function isValidPromoCode(data) {
-      return data.code is string && data.code.size() > 0 &&
-             data.discountPercentage is number && data.discountPercentage >= 0 && data.discountPercentage <= 100 &&
-             data.isActive is bool;
+             data.items is list && data.items.size() > 0 &&
+             data.status in ["Awaiting Payment", "Paid", "Cancelled", "Shipped", "Delivered", "Pending Payment"] &&
+             data.createdAt is string;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
 
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if isAdmin();
-
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if isAuthenticated() && isValidReview(request.resource.data);
-        allow update, delete: if isAdmin();
-      }
-    }
-
     match /orders/{orderId} {
+      // Orders can be read by the customer (by email) or admins
+      // Since we don't have a strict auth-to-email mapping in all cases yet,
+      // and the backend handles most reads, we'll allow admins full access.
+      // For customers, we'll allow reading if their email matches.
       allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email == resource.data.email);
+      
+      // Creating orders is allowed for authenticated users (or the backend)
+      // The backend will use the admin SDK or a service account, but here we define client rules.
       allow create: if isAuthenticated() && isValidOrder(request.resource.data);
-      allow update: if isAdmin();
-      allow delete: if isSuperAdmin();
+      
+      // Updates are restricted to admins (for status changes) or the owner (for cancellation)
+      allow update: if isAdmin() || (isOwner(resource.data.email) && request.resource.data.status == "Cancelled" && isValidOrder(request.resource.data));
+      
+      allow delete: if isAdmin();
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'User';
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
-      allow delete: if isSuperAdmin();
-    }
-
-    match /promocodes/{promoId} {
-      allow read: if true;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
+      allow update: if isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
     }
-
-    match /settings/global {
-      allow read: if true;
-      allow write: if isSuperAdmin();
-    }
-
-    match /test/connection {
-      allow read: if true;
+    
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }
