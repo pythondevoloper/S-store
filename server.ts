@@ -9,37 +9,6 @@ import nodemailer from "nodemailer";
 import { GoogleGenAI } from "@google/genai";
 import { spawn } from "child_process";
 import { createWorker } from "tesseract.js";
-import { db as firestore } from "./firebase-admin.js";
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: any;
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      isServer: true,
-      note: "Running on server with Admin SDK"
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -239,57 +208,45 @@ async function writePromoCodes(codes: any[]) {
 }
 
 async function readUsers() {
-  const path = "users";
   try {
-    const snapshot = await firestore.collection(path).get();
-    if (snapshot.empty) {
-      // Default users
-      const defaultUsers: any[] = [
-        { 
-          id: "1", 
-          username: "admin", 
-          password: "shoh1dbek", 
-          role: "SuperAdmin",
-          affiliateToken: "ADMIN_REF",
-          affiliateBalance: 0,
-          sCoins: 0,
-          userLevel: "Beginner",
-          userPreferences: {}
-        },
-        { 
-          id: "2", 
-          username: "manager", 
-          password: "manager123", 
-          role: "Manager",
-          affiliateToken: "MANAGER_REF",
-          affiliateBalance: 0,
-          sCoins: 0,
-          userLevel: "Beginner",
-          userPreferences: {}
-        }
-      ];
-      await writeUsers(defaultUsers);
-      return defaultUsers;
-    }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+    const data = await fs.readFile(USERS_FILE, "utf-8");
+    return JSON.parse(data);
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, path);
-    return [];
+    // Default users
+    const defaultUsers = [
+      { 
+        id: "1", 
+        username: "admin", 
+        password: "shoh1dbek", 
+        role: "SuperAdmin",
+        affiliateToken: "ADMIN_REF",
+        affiliateBalance: 0,
+        sCoins: 0,
+        userLevel: "Beginner",
+        userPreferences: {}
+      },
+      { 
+        id: "2", 
+        username: "manager", 
+        password: "manager123", 
+        role: "Manager",
+        affiliateToken: "MANAGER_REF",
+        affiliateBalance: 0,
+        sCoins: 0,
+        userLevel: "Beginner",
+        userPreferences: {}
+      }
+    ];
+    await fs.writeFile(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+    return defaultUsers;
   }
 }
 
 async function writeUsers(users: any[]) {
-  const path = "users";
   try {
-    const batch = firestore.batch();
-    for (const user of users) {
-      if (!user.id) continue;
-      const userRef = firestore.collection(path).doc(user.id);
-      batch.set(userRef, user, { merge: true });
-    }
-    await batch.commit();
+    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    console.error("Error writing users:", error);
   }
 }
 
@@ -313,28 +270,19 @@ async function writeExchangeRate(rateData: any) {
 }
 
 async function readOrders() {
-  const path = "orders";
   try {
-    const snapshot = await firestore.collection(path).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+    const data = await fs.readFile(ORDERS_FILE, "utf-8");
+    return JSON.parse(data);
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 async function writeOrders(orders: any[]) {
-  const path = "orders";
   try {
-    const batch = firestore.batch();
-    for (const order of orders) {
-      if (!order.id) continue;
-      const orderRef = firestore.collection(path).doc(order.id);
-      batch.set(orderRef, order, { merge: true });
-    }
-    await batch.commit();
+    await fs.writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2));
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    console.error("Error writing orders:", error);
   }
 }
 
