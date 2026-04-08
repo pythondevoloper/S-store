@@ -45,9 +45,13 @@ interface PromoCode {
 
 export default function AdminPanel({ products, settings, adminUser, userData, onAddProduct, onDeleteProduct, onUpdateSettings, onLogout, exchangeRate, onUpdateExchangeRate }: AdminPanelProps) {
   const isSuperAdmin = adminUser?.role === "SuperAdmin" || userData?.role === "SuperAdmin";
-  const [activeTab, setActiveTab] = useState<"inventory" | "settings" | "promos" | "reviews" | "profile" | "diagnostics" | "paymentSettings" | "dashboard" | "botManager" | "orders">("inventory");
+  const [activeTab, setActiveTab] = useState<"inventory" | "settings" | "promos" | "reviews" | "profile" | "diagnostics" | "paymentSettings" | "dashboard" | "botManager" | "orders" | "userManagement">("inventory");
   
   const [orders, setOrders] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [newUser, setNewUser] = useState({ username: "", password: "", role: "Manager" });
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
   const [newProduct, setNewProduct] = useState<Omit<Product, "id">>({
     name: "",
@@ -76,8 +80,93 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
       fetchAnalytics();
       fetchDiagnostics();
       fetchOrders();
+      fetchUsers();
     }
   }, [isSuperAdmin]);
+
+  const fetchUsers = async () => {
+    setIsUsersLoading(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        headers: { "x-admin-role": adminUser?.role || "" }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-role": adminUser?.role || ""
+        },
+        body: JSON.stringify(newUser)
+      });
+      if (res.ok) {
+        setNewUser({ username: "", password: "", role: "Manager" });
+        fetchUsers();
+        alert("Foydalanuvchi muvaffaqiyatli qo'shildi!");
+      } else {
+        const err = await res.json();
+        alert(`Xatolik: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Error adding user:", error);
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-role": adminUser?.role || ""
+        },
+        body: JSON.stringify(editingUser)
+      });
+      if (res.ok) {
+        setEditingUser(null);
+        fetchUsers();
+        alert("Foydalanuvchi ma'lumotlari yangilandi!");
+      } else {
+        const err = await res.json();
+        alert(`Xatolik: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm("Haqiqatan ham ushbu foydalanuvchini o'chirib tashlamoqchimisiz?")) return;
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-role": adminUser?.role || "" }
+      });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const err = await res.json();
+        alert(`Xatolik: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
+  };
 
   const fetchOrders = async () => {
     setIsOrdersLoading(true);
@@ -261,6 +350,12 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
               Buyurtmalar
             </button>
             <button
+              onClick={() => setActiveTab("userManagement")}
+              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === "userManagement" ? "bg-brand-accent text-brand-bg" : "text-gray-500 hover:text-white"}`}
+            >
+              Foydalanuvchilar
+            </button>
+            <button
               onClick={() => setActiveTab("botManager")}
               className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === "botManager" ? "bg-brand-accent text-brand-bg" : "text-gray-500 hover:text-white"}`}
             >
@@ -422,6 +517,129 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === "userManagement" && isSuperAdmin && (
+          <motion.div
+            key="userManagement"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="lg:col-span-1">
+                <form onSubmit={editingUser ? handleUpdateUser : handleAddUser} className="glass p-8 rounded-3xl space-y-6 sticky top-24">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <User className="w-5 h-5 text-brand-accent" /> {editingUser ? "Foydalanuvchini Tahrirlash" : "Yangi Foydalanuvchi"}
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase">Username</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="admin_name"
+                        value={editingUser ? editingUser.username : newUser.username}
+                        onChange={e => editingUser ? setEditingUser({...editingUser, username: e.target.value}) : setNewUser({ ...newUser, username: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-brand-accent transition-colors"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase">Password</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="password123"
+                        value={editingUser ? editingUser.password : newUser.password}
+                        onChange={e => editingUser ? setEditingUser({...editingUser, password: e.target.value}) : setNewUser({ ...newUser, password: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-brand-accent transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase">Role</label>
+                      <select
+                        value={editingUser ? editingUser.role : newUser.role}
+                        onChange={e => editingUser ? setEditingUser({...editingUser, role: e.target.value}) : setNewUser({ ...newUser, role: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-brand-accent transition-colors appearance-none"
+                      >
+                        <option value="SuperAdmin">SuperAdmin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="User">User</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn-primary flex-1 py-4">
+                      {editingUser ? "Yangilash" : "Qo'shish"}
+                    </button>
+                    {editingUser && (
+                      <button 
+                        type="button" 
+                        onClick={() => setEditingUser(null)}
+                        className="px-6 py-4 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all"
+                      >
+                        Bekor qilish
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Users className="w-5 h-5 text-brand-accent" /> Admin Foydalanuvchilar
+                  </h3>
+                  <button 
+                    onClick={fetchUsers}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${isUsersLoading ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  {users.map(user => (
+                    <div key={user.id} className="glass p-6 rounded-2xl flex justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-brand-accent/20 rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-brand-accent" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold">{user.username}</h4>
+                          <div className="flex gap-2 items-center">
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${user.role === "SuperAdmin" ? "bg-red-500/10 text-red-500" : "bg-brand-accent/10 text-brand-accent"}`}>
+                              {user.role}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-mono">PW: {user.password}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="p-2 text-gray-500 hover:text-brand-accent hover:bg-brand-accent/10 rounded-lg transition-all"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </motion.div>

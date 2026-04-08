@@ -883,9 +883,94 @@ async function startServer() {
     res.json({ message: "Exchange rate updated successfully", rateData });
   });
 
+  app.post("/api/admin/login", async (req, res) => {
+    const { password } = req.body;
+    const users = await readUsers();
+    const user = users.find((u: any) => u.password === password);
+
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(401).json({ message: "Invalid security key" });
+    }
+  });
+
   app.get("/api/admin/users", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
     const users = await readUsers();
     res.json(users);
+  });
+
+  app.post("/api/admin/users", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+
+    const newUser = req.body;
+    const users = await readUsers();
+    
+    if (users.find((u: any) => u.username === newUser.username)) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const userWithId = { 
+      ...newUser, 
+      id: Date.now().toString(),
+      affiliateToken: newUser.affiliateToken || `REF_${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+      affiliateBalance: 0,
+      sCoins: 0,
+      userLevel: "Beginner",
+      userPreferences: {}
+    };
+    
+    users.push(userWithId);
+    await writeUsers(users);
+    res.status(201).json(userWithId);
+  });
+
+  app.put("/api/admin/users/:id", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+
+    const { id } = req.params;
+    const updatedData = req.body;
+    const users = await readUsers();
+    const userIndex = users.findIndex((u: any) => u.id === id);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent changing the last SuperAdmin's role if needed, but for now just update
+    users[userIndex] = { ...users[userIndex], ...updatedData };
+    await writeUsers(users);
+    res.json(users[userIndex]);
+  });
+
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+
+    const { id } = req.params;
+    let users = await readUsers();
+    
+    // Prevent deleting the primary admin if necessary
+    const userToDelete = users.find((u: any) => u.id === id);
+    if (userToDelete?.username === "admin") {
+      return res.status(400).json({ message: "Cannot delete primary admin" });
+    }
+
+    users = users.filter((u: any) => u.id !== id);
+    await writeUsers(users);
+    res.status(204).send();
   });
 
   app.get("/api/admin/orders", async (req, res) => {

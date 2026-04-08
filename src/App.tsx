@@ -859,11 +859,14 @@ export default function App() {
     setLoginError("");
 
     try {
-      const res = await fetch("/api/admin/users");
-      const users = await res.json();
-      const user = users.find((u: any) => u.password === adminPassword);
-
-      if (user) {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      
+      if (res.ok) {
+        const user = await res.json();
         setAdminUser(user);
         setIsAdminAuthenticated(true);
       } else {
