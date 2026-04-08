@@ -9,7 +9,7 @@ import ProductDetails from "./components/ProductDetails";
 import LogisticsTracker from "./components/LogisticsTracker";
 import AdminPanel from "./components/AdminPanel";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, Scan, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import { Language, translations } from "./translations";
 import confetti from "canvas-confetti";
@@ -354,8 +354,6 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
   const [adminUser, setAdminUser] = useState<any>(null);
   const [refToken, setRefToken] = useState<string | null>(null);
 
@@ -791,55 +789,6 @@ export default function App() {
     }
   };
 
-  const [isFaceIDOpen, setIsFaceIDOpen] = useState(false);
-  const [faceIDStatus, setFaceIDStatus] = useState<"init" | "scanning" | "verifying" | "granted">("init");
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-
-  const startFaceID = async () => {
-    setIsFaceIDOpen(true);
-    setFaceIDStatus("init");
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      setTimeout(() => setFaceIDStatus("scanning"), 1000);
-      setTimeout(() => setFaceIDStatus("verifying"), 2500);
-      
-      setTimeout(async () => {
-        setFaceIDStatus("granted");
-        
-        // Finalize backend auth
-        try {
-          const res = await fetch("/api/admin/face-auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin" })
-          });
-          const data = await res.json();
-          
-          if (data.success) {
-            setTimeout(() => {
-              setAdminUser(data.user);
-              setIsAdminAuthenticated(true);
-              setIsFaceIDOpen(false);
-              // Stop stream
-              stream.getTracks().forEach(track => track.stop());
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Face-ID Auth Error:", error);
-        }
-      }, 4000);
-
-    } catch (error) {
-      console.error("Camera Access Denied:", error);
-      setIsFaceIDOpen(false);
-    }
-  };
-
   const handleFastCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fastCheckoutProduct || !fastCheckoutName || !fastCheckoutPhone) return;
@@ -907,41 +856,22 @@ export default function App() {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsScanning(true);
-    setScanProgress(0);
+    setLoginError("");
 
-    // Simulate scanning progress
-    const interval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 50);
+    try {
+      const res = await fetch("/api/admin/users");
+      const users = await res.json();
+      const user = users.find((u: any) => u.password === adminPassword);
 
-    // Simulate Face-ID processing
-    setTimeout(async () => {
-      try {
-        const res = await fetch("/api/admin/users");
-        const users = await res.json();
-        const user = users.find((u: any) => u.password === adminPassword);
-
-        if (user) {
-          setAdminUser(user);
-          setIsAdminAuthenticated(true);
-          setLoginError("");
-        } else {
-          setLoginError("Biometric match failed. Invalid credentials.");
-        }
-      } catch (error) {
-        setLoginError("System error during biometric scan.");
-      } finally {
-        setIsScanning(false);
-        setScanProgress(0);
+      if (user) {
+        setAdminUser(user);
+        setIsAdminAuthenticated(true);
+      } else {
+        setLoginError("Noto'g'ri xavfsizlik kaliti.");
       }
-    }, 3000);
+    } catch (error) {
+      setLoginError("Tizimda xatolik yuz berdi.");
+    }
   };
 
   const filteredProducts = products
@@ -1371,85 +1301,37 @@ export default function App() {
                   animate={{ scale: 1, opacity: 1 }}
                   className="glass p-12 rounded-3xl w-full max-w-md space-y-8"
                 >
-                  <div className="text-center space-y-2">
-                    <div className="w-20 h-20 bg-brand-accent/20 rounded-full flex items-center justify-center mx-auto mb-4 relative overflow-hidden">
-                      {isScanning ? (
-                        <>
-                          <video
-                            autoPlay
-                            muted
-                            playsInline
-                            ref={(video) => {
-                              if (video && isScanning) {
-                                navigator.mediaDevices.getUserMedia({ video: true })
-                                  .then(stream => { video.srcObject = stream; })
-                                  .catch(() => {});
-                              }
-                            }}
-                            className="absolute inset-0 w-full h-full object-cover rounded-full scale-x-[-1]"
-                          />
-                          <motion.div 
-                            animate={{ top: ["0%", "100%", "0%"] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                            className="absolute left-0 right-0 h-0.5 bg-brand-accent shadow-[0_0_10px_#00d4ff] z-10"
-                          />
-                          <div className="absolute inset-0 border-2 border-brand-accent rounded-full animate-pulse z-20" />
-                        </>
-                      ) : (
-                        isAdminAuthenticated ? <ShieldCheck className="w-10 h-10 text-brand-accent" /> : <Scan className="w-10 h-10 text-brand-accent" />
-                      )}
+                  <div className="text-center space-y-4 mb-12">
+                    <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center mx-auto border border-brand-accent/30">
+                      <ShieldCheck className="w-10 h-10 text-brand-accent" />
                     </div>
-                    <h2 className="text-2xl font-bold">
-                      {isScanning ? "Scanning Face..." : "Admin Biometrics"}
+                    <h2 className="text-3xl font-black tracking-tighter uppercase">
+                      Admin Access
                     </h2>
-                    <p className="text-gray-500 text-sm">
-                      {isScanning ? `Processing neural match... ${scanProgress}%` : "Enter password for biometric verification."}
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                      Enter security key to continue
                     </p>
                   </div>
 
                   <form onSubmit={handleAdminLogin} className="space-y-8">
-                    <div className="text-center space-y-4">
-                      <div className="w-24 h-24 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto border border-brand-accent/20">
-                        <Scan className="w-12 h-12 text-brand-accent" />
-                      </div>
-                      <h3 className="text-xl font-black tracking-tighter uppercase">SuperAdmin Verification</h3>
-                      <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Biometric authentication required</p>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                      <button
-                        type="button"
-                        onClick={startFaceID}
-                        className="w-full py-5 rounded-2xl bg-brand-accent text-brand-bg font-black tracking-widest uppercase flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:shadow-[0_0_50px_rgba(0,212,255,0.6)] transition-all group"
-                      >
-                        <Scan className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        Login with Face-ID
-                      </button>
-
-                      <div className="flex items-center gap-4">
-                        <div className="h-px flex-1 bg-white/10" />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase">Legacy Access</span>
-                        <div className="h-px flex-1 bg-white/10" />
-                      </div>
-
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <input
-                          disabled={isScanning}
                           type="password"
                           placeholder="Security Key"
                           value={adminPassword}
                           onChange={e => setAdminPassword(e.target.value)}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-brand-accent transition-colors text-center tracking-widest disabled:opacity-50 text-sm"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 focus:outline-none focus:border-brand-accent transition-colors text-center tracking-widest text-sm"
                         />
                         {loginError && <p className="text-red-500 text-[10px] text-center font-bold">{loginError}</p>}
                       </div>
 
                       <button 
-                        disabled={isScanning || !adminPassword}
+                        disabled={!adminPassword}
                         type="submit" 
-                        className="w-full py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                        className="w-full py-4 rounded-xl bg-brand-accent text-brand-bg font-black tracking-widest uppercase hover:shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all disabled:opacity-50"
                       >
-                        {isScanning ? "Verifying..." : "Standard Login"}
+                        Login to Dashboard
                       </button>
                     </div>
 
@@ -1613,94 +1495,6 @@ export default function App() {
                   )}
                 </motion.div>
               )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Face-ID Simulation Modal */}
-      <AnimatePresence>
-        {isFaceIDOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-brand-bg/90 backdrop-blur-xl"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="glass p-12 rounded-[40px] w-full max-w-md text-center space-y-8 relative overflow-hidden"
-            >
-              <div className="relative w-64 h-64 mx-auto">
-                {/* Camera Feed */}
-                <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-white/10 bg-black">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
-                </div>
-
-                {/* Scanning Overlay */}
-                {faceIDStatus !== "granted" && (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="absolute -inset-2 border-2 border-dashed border-brand-accent/30 rounded-full"
-                    />
-                    <motion.div
-                      animate={{ top: ["10%", "90%", "10%"] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute left-4 right-4 h-0.5 bg-brand-accent shadow-[0_0_15px_#00d4ff] z-10"
-                    />
-                  </>
-                )}
-
-                {/* Success Overlay */}
-                {faceIDStatus === "granted" && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute inset-0 bg-brand-accent/20 backdrop-blur-sm flex items-center justify-center rounded-full z-20"
-                  >
-                    <div className="bg-brand-accent p-4 rounded-full shadow-[0_0_30px_#00d4ff]">
-                      <ShieldCheck className="w-12 h-12 text-brand-bg" />
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black tracking-tighter">
-                  {faceIDStatus === "init" && "INITIALIZING CAMERA..."}
-                  {faceIDStatus === "scanning" && "SCANNING FACE..."}
-                  {faceIDStatus === "verifying" && "VERIFYING BIOMETRICS..."}
-                  {faceIDStatus === "granted" && "ACCESS GRANTED!"}
-                </h3>
-                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">
-                  {faceIDStatus === "init" && "Please look at the camera"}
-                  {faceIDStatus === "scanning" && "Neural match in progress"}
-                  {faceIDStatus === "verifying" && "Checking SuperAdmin credentials"}
-                  {faceIDStatus === "granted" && "Welcome back, Admin"}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsFaceIDOpen(false);
-                  if (videoRef.current?.srcObject) {
-                    (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-                  }
-                }}
-                className="text-gray-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-              >
-                Cancel Authentication
-              </button>
             </motion.div>
           </motion.div>
         )}
