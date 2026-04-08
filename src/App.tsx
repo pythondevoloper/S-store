@@ -9,8 +9,9 @@ import ProductDetails from "./components/ProductDetails";
 import LogisticsTracker from "./components/LogisticsTracker";
 import AdminPanel from "./components/AdminPanel";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
+import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
 import confetti from "canvas-confetti";
 import { auth, db, googleProvider } from "./firebase";
@@ -174,6 +175,8 @@ export default function App() {
   const [fastCheckoutProduct, setFastCheckoutProduct] = useState<Product | null>(null);
   const [fastCheckoutName, setFastCheckoutName] = useState("");
   const [fastCheckoutPhone, setFastCheckoutPhone] = useState("");
+  const [fastCheckoutAddress, setFastCheckoutAddress] = useState("");
+  const [showFastCheckoutMap, setShowFastCheckoutMap] = useState(false);
   const [isFastCheckoutLoading, setIsFastCheckoutLoading] = useState(false);
   const [fastCheckoutSuccess, setFastCheckoutSuccess] = useState<string | null>(null);
   const [fastCheckoutGift, setFastCheckoutGift] = useState(false);
@@ -806,6 +809,7 @@ export default function App() {
       const res = await axios.post("/api/fast-order", {
         name: fastCheckoutName,
         phone: fastCheckoutPhone,
+        address: fastCheckoutAddress,
         productId: fastCheckoutProduct.id,
         price: price,
         giftWrapping: fastCheckoutGift
@@ -824,6 +828,8 @@ export default function App() {
         setFastCheckoutProduct(null);
         setFastCheckoutName("");
         setFastCheckoutPhone("");
+        setFastCheckoutAddress("");
+        setShowFastCheckoutMap(false);
       }, 5000);
     } catch (error) {
       console.error("Fast checkout failed:", error);
@@ -1031,6 +1037,49 @@ export default function App() {
                               required
                               className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
                             />
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Yetkazib berish manzili</p>
+                              <button
+                                type="button"
+                                onClick={() => setShowFastCheckoutMap(!showFastCheckoutMap)}
+                                className="text-[10px] font-black text-brand-accent uppercase tracking-widest flex items-center gap-1 hover:underline"
+                              >
+                                <MapIcon className="w-3 h-3" />
+                                {showFastCheckoutMap ? "Xaritani yopish" : "Xaritadan tanlash"}
+                              </button>
+                            </div>
+
+                            <AnimatePresence>
+                              {showFastCheckoutMap && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <LocationPicker 
+                                    onLocationSelect={(lat, lng, addr) => {
+                                      setFastCheckoutAddress(addr);
+                                    }}
+                                  />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            <div className="relative">
+                              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                              <input
+                                type="text"
+                                placeholder="Manzilingiz"
+                                value={fastCheckoutAddress}
+                                onChange={(e) => setFastCheckoutAddress(e.target.value)}
+                                required
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                              />
+                            </div>
                           </div>
                         </div>
 

@@ -1674,6 +1674,70 @@ Iltimos, quyidagi tugma orqali to'lovni amalga oshiring:
     });
   });
 
+  app.post("/api/fast-order", async (req, res) => {
+    const { name, phone, productId, price, giftWrapping, address } = req.body;
+    const orders = await readOrders();
+    const products = await readProducts();
+    const product = products.find((p: any) => p.id === productId);
+    const rateData = await readExchangeRate();
+    const exchangeRate = rateData.rate;
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const orderId = `#FAST-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+    const formattedDate = now.toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent" });
+
+    const total = price + (giftWrapping ? 1 : 0);
+
+    const newOrder = {
+      id: orderId,
+      customerName: name,
+      phone,
+      address: address || "Telefon orqali aniqlanadi",
+      items: [{ ...product, quantity: 1, price }],
+      total,
+      status: "Pending Payment",
+      paymentMethod: "Fast Checkout",
+      createdAt: now.toISOString(),
+      exchangeRateUsed: exchangeRate,
+      giftWrapping
+    };
+
+    orders.push(newOrder);
+    await writeOrders(orders);
+
+    const totalInUzs = total * exchangeRate;
+    const formattedTotalUzs = new Intl.NumberFormat("uz-UZ").format(Math.round(totalInUzs)) + " so'm";
+
+    const caption = `
+⚡️ *TEZKOR BUYURTMA: ${orderId}*
+━━━━━━━━━━━━━━━━━━
+📅 *SANA:* ${formattedDate}
+👤 *MIJOZ:* ${name}
+📞 *TEL:* ${phone}
+📍 *MANZIL:* ${newOrder.address}
+━━━━━━━━━━━━━━━━━━
+📦 *MAHSULOT:* ${product.name}
+💰 *NARXI:* $${price}
+${giftWrapping ? "🎁 *SOVG'A O'ROVI:* $1\n" : ""}
+💵 *JAMI:* $${total}
+🏛 *KURS:* 1$ = ${exchangeRate.toLocaleString()} UZS
+💎 *TO'LOV:* ${formattedTotalUzs}
+━━━━━━━━━━━━━━━━━━
+💳 *STATUS:* ⏳ KUTILMOQDA
+    `;
+
+    await sendTelegramMessage(caption);
+
+    res.status(201).json({ 
+      message: "Tezkor buyurtmangiz qabul qilindi! Tez orada siz bilan bog'lanamiz.", 
+      id: orderId 
+    });
+  });
+
   app.get("/api/sales/recent", async (req, res) => {
     try {
       const orders = await readOrders();

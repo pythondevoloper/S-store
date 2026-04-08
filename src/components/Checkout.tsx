@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, CheckCircle2, CreditCard, User, Mail, MapPin, Phone, Cpu, Clock, AlertCircle, Gift } from "lucide-react";
+import { X, CheckCircle2, CreditCard, User, Mail, MapPin, Phone, Cpu, Clock, AlertCircle, Gift, Map as MapIcon } from "lucide-react";
 import { formatCurrency } from "../utils/currency";
+import LocationPicker from "./LocationPicker";
 
 interface CheckoutProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
     giftWrapping: false,
     greetingCard: ""
   });
+  const [showMap, setShowMap] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
@@ -357,16 +359,47 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-accent transition-colors"
                     />
                   </div>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input
-                      required
-                      type="text"
-                      placeholder="Shipping Address"
-                      value={formData.address}
-                      onChange={e => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-accent transition-colors"
-                    />
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-gray-500 uppercase">Yetkazib berish manzili</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowMap(!showMap)}
+                        className="text-[10px] font-black text-brand-accent uppercase tracking-widest flex items-center gap-1 hover:underline"
+                      >
+                        <MapIcon className="w-3 h-3" />
+                        {showMap ? "Xaritani yopish" : "Xaritadan tanlash"}
+                      </button>
+                    </div>
+
+                    <AnimatePresence>
+                      {showMap && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <LocationPicker 
+                            onLocationSelect={(lat, lng, addr) => {
+                              setFormData(prev => ({ ...prev, address: addr }));
+                            }}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        required
+                        type="text"
+                        placeholder="Shipping Address"
+                        value={formData.address}
+                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-accent transition-colors"
+                      />
+                    </div>
                   </div>
 
                   {/* Payment Method Selection */}
