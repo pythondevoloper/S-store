@@ -368,6 +368,8 @@ export default function App() {
 
   // AR Modal State
   const [arModelUrl, setArModelUrl] = useState<string | null>(null);
+  const [arLoading, setArLoading] = useState(true);
+  const [arProgress, setArProgress] = useState(0);
 
   useEffect(() => {
     localStorage.setItem("s-store-language", language);
@@ -898,7 +900,10 @@ export default function App() {
     });
 
   const cartTotal = useMemo(() => {
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = cart.reduce((sum, item) => {
+      const price = (activeGroup && activeGroup.productId === item.id) ? (item.groupPrice || item.price) : item.price;
+      return sum + price * item.quantity;
+    }, 0);
     
     // Smart Bundle Discount (15% if Laptop + Mouse + Bag)
     const hasLaptop = cart.some(item => item.category === "Noutbuklar");
@@ -1117,56 +1122,7 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            {/* AR Model Viewer Modal */}
-            <AnimatePresence>
-              {arModelUrl && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-3xl">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="relative w-full h-full flex flex-col"
-                  >
-                    <div className="p-6 flex justify-between items-center glass border-b border-white/10">
-                      <div className="flex items-center gap-3">
-                        <Box className="w-6 h-6 text-brand-accent" />
-                        <h3 className="text-xl font-black tracking-tighter uppercase">AR Try-On Mode</h3>
-                      </div>
-                      <button 
-                        onClick={() => setArModelUrl(null)}
-                        className="p-3 glass rounded-full hover:bg-white/10 transition-colors"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 relative">
-                      {/* @ts-ignore */}
-                      <model-viewer
-                        src={arModelUrl}
-                        ar
-                        ar-modes="webxr scene-viewer quick-look"
-                        camera-controls
-                        poster="poster.webp"
-                        shadow-intensity="1"
-                        auto-rotate
-                        style={{ width: '100%', height: '100%', '--poster-color': 'transparent' }}
-                      >
-                        <button slot="ar-button" className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-brand-accent text-brand-bg px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl">
-                          XONANGIZGA QO'YISH
-                        </button>
-                      </model-viewer>
-                    </div>
-                    
-                    <div className="p-6 glass border-t border-white/10 text-center">
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                        Smartfoningiz kamerasidan foydalanib mahsulotni xonangizga joylashtiring
-                      </p>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
+            {/* AR Model Viewer Modal - Consolidated to bottom */}
 
             {/* Flash Sale Banner */}
             <AnimatePresence>
@@ -2114,12 +2070,35 @@ export default function App() {
                   <Box className="w-8 h-8 text-brand-accent" />
                   <h2 className="text-3xl font-black tracking-tighter uppercase">AR PREVIEW</h2>
                 </div>
-                <button onClick={() => setArModelUrl(null)} className="p-4 glass rounded-full hover:bg-white/10 transition-colors">
+                <button 
+                  onClick={() => {
+                    setArModelUrl(null);
+                    setArLoading(true);
+                    setArProgress(0);
+                  }} 
+                  className="p-4 glass rounded-full hover:bg-white/10 transition-colors"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
               
               <div className="flex-1 relative">
+                {arLoading && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-brand-bg/50 backdrop-blur-sm">
+                    <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden mb-4">
+                      <motion.div 
+                        className="h-full bg-brand-accent"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${arProgress * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] font-black tracking-widest text-brand-accent uppercase animate-pulse">
+                      Model yuklanmoqda... {Math.round(arProgress * 100)}%
+                    </p>
+                  </div>
+                )}
+                
+                {/* @ts-ignore */}
                 <model-viewer
                   src={arModelUrl}
                   ar
@@ -2128,12 +2107,20 @@ export default function App() {
                   poster="poster.webp"
                   shadow-intensity="1"
                   auto-rotate
+                  onProgress={(e: any) => setArProgress(e.detail.totalProgress)}
+                  onLoad={() => setArLoading(false)}
                   style={{ width: "100%", height: "100%", "--poster-color": "transparent" }}
                 >
                   <button slot="ar-button" className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-brand-accent text-brand-bg px-8 py-4 rounded-2xl font-black tracking-widest uppercase shadow-[0_0_30px_#00d4ff]">
                     XONADA KO'RISH (AR)
                   </button>
                 </model-viewer>
+              </div>
+
+              <div className="p-6 glass border-t border-white/10 text-center">
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                  Smartfoningiz kamerasidan foydalanib mahsulotni xonangizga joylashtiring
+                </p>
               </div>
             </motion.div>
           </motion.div>

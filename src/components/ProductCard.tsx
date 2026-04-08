@@ -92,6 +92,17 @@ export default function ProductCard({ product, onAddToCart, onShowDetails, isUzs
               </motion.span>
             </div>
           )}
+          {product.groupPrice && !isFlashSale && (
+            <div className="absolute top-[90px] left-4 z-10">
+              <motion.span
+                animate={{ opacity: [1, 0.7, 1] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+                className="px-3 py-1 bg-brand-accent/20 backdrop-blur-md border border-brand-accent/30 text-brand-accent text-[8px] font-black uppercase tracking-widest rounded-full"
+              >
+                👥 Guruh: -2%
+              </motion.span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-brand-bg/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
           <button
             onClick={() => onShowDetails(product)}

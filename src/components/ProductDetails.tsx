@@ -310,6 +310,9 @@ export default function ProductDetails({ product, onClose, onAddToCart, isUzsMod
                     <div className="flex items-center gap-2 text-brand-accent font-black uppercase tracking-widest">
                       <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
                       Guruh bilan sotib olish
+                      <span className="ml-auto bg-brand-accent text-brand-bg text-[8px] px-1.5 py-0.5 rounded-full">
+                        -2%
+                      </span>
                     </div>
                     <span className="text-[10px] font-bold text-gray-500 uppercase">
                       Faqat {formatCurrency(product.groupPrice, isUzsMode, exchangeRate)} (3 kishi)

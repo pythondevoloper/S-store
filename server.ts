@@ -641,13 +641,15 @@ async function startServer() {
     const processedProducts = products.map((p: any) => {
       const isTrending = (p.viewCount || 0) > 50 && (now - (p.lastViewed || 0)) < oneDay;
       const dynamicPrice = isTrending ? p.price * 0.9 : p.price;
+      const groupPrice = Math.round(dynamicPrice * 0.98); // 2% discount for group buy
 
       return {
         ...p,
         reviews: p.reviews || [],
         viewCount: p.viewCount || 0,
         isTrending,
-        dynamicPrice: Math.round(dynamicPrice)
+        dynamicPrice: Math.round(dynamicPrice),
+        groupPrice: groupPrice
       };
     });
     res.json(processedProducts);
