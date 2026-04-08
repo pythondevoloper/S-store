@@ -18,6 +18,7 @@ interface AdminPanelProps {
     bots: { token: string; username: string; status: "active" | "inactive" }[] 
   };
   adminUser: { username: string; role: string } | null;
+  userData: any;
   onAddProduct: (product: Omit<Product, "id">) => void;
   onDeleteProduct: (id: string) => void;
   onUpdateSettings: (settings: any) => void;
@@ -42,8 +43,8 @@ interface PromoCode {
   isActive: boolean;
 }
 
-export default function AdminPanel({ products, settings, adminUser, onAddProduct, onDeleteProduct, onUpdateSettings, onLogout, exchangeRate, onUpdateExchangeRate }: AdminPanelProps) {
-  const isSuperAdmin = adminUser?.role === "SuperAdmin";
+export default function AdminPanel({ products, settings, adminUser, userData, onAddProduct, onDeleteProduct, onUpdateSettings, onLogout, exchangeRate, onUpdateExchangeRate }: AdminPanelProps) {
+  const isSuperAdmin = adminUser?.role === "SuperAdmin" || userData?.role === "SuperAdmin";
   const [activeTab, setActiveTab] = useState<"inventory" | "settings" | "promos" | "reviews" | "profile" | "diagnostics" | "paymentSettings" | "dashboard" | "botManager" | "orders">("inventory");
   
   const [orders, setOrders] = useState<any[]>([]);
@@ -441,7 +442,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
           </motion.div>
         )}
 
-        {activeTab === "profile" && adminUser && (
+        {activeTab === "profile" && (adminUser || userData) && (
           <motion.div
             key="profile"
             initial={{ opacity: 0, y: 20 }}
@@ -451,12 +452,17 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
           >
             <div className="glass p-8 rounded-[40px] border border-white/5 space-y-8">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center">
-                  <User className="w-10 h-10 text-brand-accent" />
+                <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center overflow-hidden border border-brand-accent/30">
+                  {userData?.photoURL ? (
+                    <img src={userData.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <User className="w-10 h-10 text-brand-accent" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black tracking-tighter uppercase">{adminUser.username}</h3>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{adminUser.role}</p>
+                  <h3 className="text-2xl font-black tracking-tighter uppercase">{userData?.displayName || adminUser?.username}</h3>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{userData?.role || adminUser?.role}</p>
+                  {userData?.email && <p className="text-[10px] text-gray-600 font-bold">{userData.email}</p>}
                 </div>
               </div>
 
@@ -472,12 +478,13 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                     <div className="flex gap-2">
                       <input 
                         readOnly
-                        value={`${window.location.origin}?ref=${(adminUser as any).affiliateToken || "TOKEN_NOT_FOUND"}`}
+                        value={`${window.location.origin}?ref=${userData?.affiliateToken || (adminUser as any)?.affiliateToken || "TOKEN_NOT_FOUND"}`}
                         className="flex-1 bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-xs font-mono text-brand-accent"
                       />
                       <button 
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}?ref=${(adminUser as any).affiliateToken}`);
+                          const token = userData?.affiliateToken || (adminUser as any)?.affiliateToken;
+                          navigator.clipboard.writeText(`${window.location.origin}?ref=${token}`);
                           alert("Havola nusxalandi!");
                         }}
                         className="p-3 bg-brand-accent text-brand-bg rounded-xl hover:shadow-[0_0_15px_#00d4ff] transition-all"
@@ -491,7 +498,7 @@ export default function AdminPanel({ products, settings, adminUser, onAddProduct
                   <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-3xl flex justify-between items-center">
                     <div>
                       <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Hamkorlik Balansi</p>
-                      <h4 className="text-3xl font-black text-green-500">${((adminUser as any).affiliateBalance || 0).toFixed(2)}</h4>
+                      <h4 className="text-3xl font-black text-green-500">${(userData?.affiliateBalance || (adminUser as any)?.affiliateBalance || 0).toFixed(2)}</h4>
                     </div>
                     <button className="px-6 py-3 bg-green-500 text-white rounded-xl font-black text-xs tracking-widest uppercase hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all">
                       Yechib olish

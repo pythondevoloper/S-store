@@ -13,6 +13,10 @@ import { Lock, ArrowLeft, Monitor, Zap, Camera, Scan, ShieldCheck, LayoutGrid, S
 import { formatCurrency } from "./utils/currency";
 import { Language, translations } from "./translations";
 import confetti from "canvas-confetti";
+import { auth, db, googleProvider } from "./firebase";
+import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -107,6 +111,8 @@ function CurrencyCalculator({ rate }: { rate: number }) {
 }
 
 export default function App() {
+  const [user, loadingAuth] = useAuthState(auth);
+  const [userData, setUserData] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<{ 
     logoBase64: string; 
@@ -183,6 +189,54 @@ export default function App() {
   // Image Search State
   const [isImageSearchLoading, setIsImageSearchLoading] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      syncUserProfile(user);
+    } else {
+      setUserData(null);
+    }
+  }, [user]);
+
+  const syncUserProfile = async (firebaseUser: FirebaseUser) => {
+    const userRef = doc(db, "users", firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      const newUser = {
+        uid: firebaseUser.uid,
+        displayName: firebaseUser.displayName,
+        email: firebaseUser.email,
+        photoURL: firebaseUser.photoURL,
+        role: firebaseUser.email === "computeruz559@gmail.com" ? "SuperAdmin" : "user",
+        affiliateToken: Math.random().toString(36).substring(7),
+        affiliateBalance: 0,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(userRef, newUser);
+      setUserData(newUser);
+    } else {
+      setUserData(userSnap.data());
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsAdminAuthenticated(false);
+      setAdminUser(null);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   const fetchRecentSales = async () => {
     try {
       const response = await fetch("/api/sales/recent");
@@ -196,6 +250,18 @@ export default function App() {
   };
 
   useEffect(() => {
+    const testConnection = async () => {
+      try {
+        const { getDocFromServer } = await import("firebase/firestore");
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error: any) {
+        if (error.message?.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+    
     fetchProducts();
     fetchExchangeRate();
     fetchRecentSales();
@@ -203,6 +269,12 @@ export default function App() {
     const interval = setInterval(fetchRecentSales, 30000); // Poll every 30s
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchAnalytics();
+    }
+  }, [user]);
 
   // Flash Sale Timer Logic
   useEffect(() => {
@@ -341,24 +413,41 @@ export default function App() {
   };
 
   const fetchAnalytics = async () => {
-    if (!profileEmail) return;
+    const email = user?.email || profileEmail;
+    if (!email) return;
     setIsAnalyticsLoading(true);
     try {
-      const res = await fetch(`/api/user/analytics?email=${profileEmail}`);
-      if (res.ok) {
-        const data = await res.json();
+      // Fetch from Firestore
+      const userRef = doc(db, "users", user?.uid || "");
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const data = userSnap.data();
         
+        // Calculate rank and level based on total spent or coins
+        // For now, we'll use the data from Firestore
+        const analytics = {
+          ...data,
+          totalSpent: data.totalSpent || 0,
+          rank: data.totalSpent > 5000 ? "Gold Member" : data.totalSpent > 1000 ? "Silver Member" : "Bronze Member",
+          sCoins: data.sCoins || 0,
+          userLevel: data.sCoins > 5000 ? "Cyber Legend" : data.sCoins > 1000 ? "Tech Enthusiast" : "Beginner",
+          orderCount: data.orderCount || 0,
+          orders: data.orders || [],
+          categoryBreakdown: data.categoryBreakdown || []
+        };
+
         // Confetti if rank changed
-        if (userAnalytics && data.rank !== userAnalytics.rank) {
+        if (userAnalytics && analytics.rank !== userAnalytics.rank) {
           confetti({
             particleCount: 150,
             spread: 70,
             origin: { y: 0.6 },
-            colors: data.rank === "Gold Member" ? ["#FFD700", "#FFA500"] : ["#C0C0C0", "#E5E4E2"]
+            colors: analytics.rank === "Gold Member" ? ["#FFD700", "#FFA500"] : ["#C0C0C0", "#E5E4E2"]
           });
         }
         
-        setUserAnalytics(data);
+        setUserAnalytics(analytics);
       }
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -570,43 +659,45 @@ export default function App() {
   const handleCheckout = async (customerData: any) => {
     localStorage.setItem("user_email", customerData.email);
     
-    const order = {
+    const orderData = {
       ...customerData,
+      userId: user?.uid || null,
       items: cart.map(item => {
         const price = (activeGroup && activeGroup.productId === item.id) ? (item.groupPrice || item.price) : item.price;
         return { ...item, price };
       }),
-      ref: refToken, // Pass referral token
-      exchangeRateUsed: exchangeRate
+      ref: refToken,
+      exchangeRateUsed: exchangeRate,
+      status: "Pending",
+      createdAt: new Date().toISOString()
     };
 
     try {
-      const res = await fetch("/api/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(order)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCart([]);
-        localStorage.removeItem("active_group");
-        setActiveGroup(null);
-        
-        // Check for level up after order
-        const oldLevel = userAnalytics?.userLevel;
-        await fetchAnalytics();
-        if (userAnalytics && userAnalytics.userLevel !== oldLevel) {
-          confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#00d4ff', '#ffffff', '#0055ff']
-          });
-        }
-        
-        return data;
+      // Save to Firestore
+      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      
+      if (user) {
+        // Update user stats
+        const userRef = doc(db, "users", user.uid);
+        const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const earnedCoins = Math.floor(totalAmount / 10); // 1 coin per $10
+
+        await updateDoc(userRef, {
+          totalSpent: increment(totalAmount),
+          sCoins: increment(earnedCoins),
+          orderCount: increment(1),
+          orders: arrayUnion({ ...orderData, id: orderRef.id })
+        });
       }
-      throw new Error("Failed to place order");
+
+      setCart([]);
+      localStorage.removeItem("active_group");
+      setActiveGroup(null);
+      
+      // Refresh analytics
+      if (user) await fetchAnalytics();
+      
+      return { ...orderData, id: orderRef.id };
     } catch (error) {
       console.error("Error placing order:", error);
       throw error;
@@ -919,6 +1010,10 @@ export default function App() {
               onTrackClick={() => setIsTrackingOpen(true)}
               onWarrantyClick={() => setIsWarrantyModalOpen(true)}
               onProfileClick={() => setIsProfileOpen(true)}
+              user={user}
+              userData={userData}
+              onLogin={loginWithGoogle}
+              onLogout={handleLogout}
             />
 
             {/* Fast Checkout Modal */}
@@ -1366,13 +1461,13 @@ export default function App() {
                 products={products}
                 settings={settings}
                 adminUser={adminUser}
+                userData={userData}
                 onAddProduct={handleAddProduct}
                 onDeleteProduct={handleDeleteProduct}
                 onUpdateSettings={handleUpdateSettings}
                 onLogout={() => {
-                  setIsAdminAuthenticated(false);
+                  handleLogout();
                   setAdminPassword("");
-                  setAdminUser(null);
                   setView("store");
                 }}
                 exchangeRate={exchangeRate}
@@ -1848,34 +1943,33 @@ export default function App() {
               </button>
 
               <div className="flex items-center gap-6 mb-12">
-                <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center border border-brand-accent/30">
-                  <User className="w-10 h-10 text-brand-accent" />
+                <div className="w-20 h-20 bg-brand-accent/20 rounded-3xl flex items-center justify-center border border-brand-accent/30 overflow-hidden">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <User className="w-10 h-10 text-brand-accent" />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-4xl font-black tracking-tighter uppercase">Mening profilim</h2>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">User Spending Analytics</p>
+                  <h2 className="text-4xl font-black tracking-tighter uppercase">{userData?.displayName || user?.displayName || "Mening profilim"}</h2>
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">{user?.email || "User Spending Analytics"}</p>
                 </div>
               </div>
 
-              {!userAnalytics ? (
-                <div className="space-y-6">
-                  <p className="text-gray-400 text-sm">Xarajatlaringiz va darajangizni ko'rish uchun elektron pochtangizni kiriting:</p>
-                  <div className="flex gap-4">
-                    <input
-                      type="email"
-                      placeholder="Email manzilingiz"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent transition-all"
-                    />
-                    <button
-                      onClick={fetchAnalytics}
-                      disabled={isAnalyticsLoading || !profileEmail}
-                      className="px-8 bg-brand-accent text-brand-bg rounded-2xl font-black tracking-widest uppercase shadow-[0_0_20px_rgba(0,212,255,0.3)] disabled:opacity-50"
-                    >
-                      {isAnalyticsLoading ? "Yuklanmoqda..." : "KIRISH"}
-                    </button>
-                  </div>
+              {!user && !userAnalytics ? (
+                <div className="space-y-6 text-center py-12">
+                  <p className="text-gray-400 text-sm">Profil ma'lumotlarini ko'rish uchun tizimga kiring:</p>
+                  <button
+                    onClick={loginWithGoogle}
+                    className="px-12 py-4 bg-brand-accent text-brand-bg rounded-2xl font-black tracking-widest uppercase shadow-[0_0_20px_rgba(0,212,255,0.3)] hover:scale-105 transition-transform"
+                  >
+                    Google orqali kirish
+                  </button>
+                </div>
+              ) : !userAnalytics ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="w-12 h-12 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Ma'lumotlar yuklanmoqda...</p>
                 </div>
               ) : (
                 <div className="space-y-8">

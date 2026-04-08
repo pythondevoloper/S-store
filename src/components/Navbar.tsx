@@ -1,8 +1,9 @@
-import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User } from "lucide-react";
+import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
 import React, { useState, useRef, useEffect } from "react";
 import { Language, translations } from "../translations";
+import { User as FirebaseUser } from "firebase/auth";
 
 interface NavbarProps {
   cartCount: number;
@@ -17,13 +18,17 @@ interface NavbarProps {
   onToggleUzs: () => void;
   language: Language;
   onLanguageChange: (lang: Language) => void;
-  theme: "light" | "dark";
+  theme: "light" | "dark" | "midnight";
   onToggleTheme: () => void;
   searchResults?: Product[];
   onProductClick?: (product: Product) => void;
   onTrackClick: () => void;
   onWarrantyClick: () => void;
   onProfileClick: () => void;
+  user: FirebaseUser | null | undefined;
+  userData: any;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 export default function Navbar({ 
@@ -45,10 +50,15 @@ export default function Navbar({
   onProductClick,
   onTrackClick,
   onWarrantyClick,
-  onProfileClick
+  onProfileClick,
+  user,
+  userData,
+  onLogin,
+  onLogout
 }: NavbarProps) {
   const [isListening, setIsListening] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[language];
@@ -260,15 +270,85 @@ export default function Navbar({
         </button>
 
         {/* Profile Button */}
-        <button
-          onClick={onProfileClick}
-          className={`p-2 rounded-full transition-all ${
-            theme === "dark" ? "hover:bg-white/5 text-gray-400" : "hover:bg-gray-100 text-gray-600"
-          }`}
-          title="Mening profilim"
-        >
-          <User className="w-6 h-6" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (user) {
+                setIsProfileMenuOpen(!isProfileMenuOpen);
+              } else {
+                onLogin();
+              }
+            }}
+            className={`p-1 rounded-full transition-all border-2 ${
+              user 
+                ? "border-brand-accent shadow-[0_0_10px_rgba(0,212,255,0.3)]" 
+                : theme === "dark" ? "border-transparent hover:bg-white/5 text-gray-400" : "border-transparent hover:bg-gray-100 text-gray-600"
+            }`}
+            title={user ? userData?.displayName || user.displayName : "Kirish"}
+          >
+            {user?.photoURL ? (
+              <img 
+                src={user.photoURL} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="p-1">
+                <User className="w-6 h-6" />
+              </div>
+            )}
+          </button>
+
+          <AnimatePresence>
+            {isProfileMenuOpen && user && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute top-full right-0 mt-2 w-56 glass rounded-2xl border border-white/10 overflow-hidden z-[60] shadow-2xl"
+              >
+                <div className="p-4 border-b border-white/5 bg-white/5">
+                  <p className="text-xs font-black truncate uppercase tracking-tighter">
+                    {userData?.displayName || user.displayName}
+                  </p>
+                  <p className="text-[10px] text-gray-500 truncate">
+                    {user.email}
+                  </p>
+                  {userData?.role && (
+                    <div className="mt-2 inline-block px-2 py-0.5 bg-brand-accent/20 rounded-full">
+                      <p className="text-[8px] font-black text-brand-accent uppercase tracking-widest">
+                        {userData.role}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => {
+                    onProfileClick();
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-gray-300 hover:bg-white/5 transition-colors"
+                >
+                  <User className="w-4 h-4 text-brand-accent" />
+                  Mening profilim
+                </button>
+
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Chiqish
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Theme Toggle */}
         <button
