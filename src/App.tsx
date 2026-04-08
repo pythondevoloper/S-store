@@ -144,6 +144,7 @@ export default function App() {
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isAboutOwnerOpen, setIsAboutOwnerOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState<number>(0);
@@ -220,10 +221,16 @@ export default function App() {
   };
 
   const loginWithGoogle = async () => {
+    setAuthError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        setAuthError("Ushbu domen Firebase-da ruxsat etilmagan. Iltimos, Firebase Console-da 'Authorized domains' ro'yxatiga ushbu domenni qo'shing.");
+      } else {
+        setAuthError("Tizimga kirishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.");
+      }
     }
   };
 
@@ -2378,6 +2385,49 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Auth Error Modal */}
+      <AnimatePresence>
+        {authError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass p-8 rounded-[40px] w-full max-w-md text-center space-y-6 border border-red-500/30"
+            >
+              <div className="w-20 h-20 bg-red-500/20 rounded-3xl flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-10 h-10 text-red-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black tracking-tighter uppercase text-red-500">Xatolik yuz berdi</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  {authError}
+                </p>
+                {authError.includes("Authorized domains") && (
+                  <div className="mt-4 p-4 bg-white/5 rounded-2xl text-left space-y-2">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Qo'shilishi kerak bo'lgan domenlar:</p>
+                    <code className="block text-[10px] font-mono text-brand-accent break-all bg-black/40 p-2 rounded-lg">
+                      {window.location.hostname}
+                    </code>
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => setAuthError(null)}
+                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black tracking-widest uppercase hover:bg-red-600 transition-colors"
+              >
+                Tushunarli
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* About Owner Modal */}
       <AnimatePresence>
