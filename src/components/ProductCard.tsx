@@ -28,6 +28,7 @@ export default function ProductCard({ product, onAddToCart, onShowDetails, isUzs
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
+      data-product-id={product.id}
       className={`glass rounded-xl overflow-hidden group flex flex-col h-full relative ${isFlashSale ? 'border-2 border-brand-accent shadow-[0_0_20px_rgba(0,212,255,0.3)]' : ''}`}
     >
       <button

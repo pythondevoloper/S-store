@@ -12,8 +12,10 @@ import VirtualWorkshop from "./components/VirtualWorkshop";
 import AISetupAnalyst from "./components/AISetupAnalyst";
 import SAIConfigurator from "./components/SAIConfigurator";
 import HardwareHealth from "./components/HardwareHealth";
+import StressTest from "./components/StressTest";
+import SEyeControl from "./components/SEyeControl";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity, Flame, Video, Eye } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
@@ -173,6 +175,9 @@ export default function App() {
   const [isSetupAnalystOpen, setIsSetupAnalystOpen] = useState(false);
   const [isSAIConfiguratorOpen, setIsSAIConfiguratorOpen] = useState(false);
   const [isHardwareHealthOpen, setIsHardwareHealthOpen] = useState(false);
+  const [isStressTestOpen, setIsStressTestOpen] = useState(false);
+  const [isSEyeActive, setIsSEyeActive] = useState(false);
+  const [focusedProductId, setFocusedProductId] = useState<string | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -294,7 +299,6 @@ export default function App() {
     }
   }, [user]);
 
-  // Flash Sale Timer Logic
   useEffect(() => {
     if (!isFlashSaleActive) return;
 
@@ -915,6 +919,30 @@ export default function App() {
       return 0;
     });
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxRatio = 0;
+        let bestId = null;
+        
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            bestId = entry.target.getAttribute('data-product-id');
+          }
+        });
+        
+        if (bestId) setFocusedProductId(bestId);
+      },
+      { threshold: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], rootMargin: '-20% 0px -20% 0px' }
+    );
+
+    const productElements = document.querySelectorAll('[data-product-id]');
+    productElements.forEach((p) => observer.observe(p));
+
+    return () => observer.disconnect();
+  }, [filteredProducts, isLoading]);
+
   const cartTotal = useMemo(() => {
     const total = cart.reduce((sum, item) => {
       const price = (activeGroup && activeGroup.productId === item.id) ? (item.groupPrice || item.price) : item.price;
@@ -1204,12 +1232,12 @@ export default function App() {
             </AnimatePresence>
 
             {/* Feature Banners Grid */}
-            <div className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* PC Builder Banner */}
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsPCBuilderOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1218,15 +1246,15 @@ export default function App() {
                     scale: [1, 1.2, 1]
                   }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-10 -top-10 w-40 h-40 bg-brand-accent/10 rounded-full blur-[60px]"
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-brand-accent/10 rounded-full blur-[40px]"
                 />
                 
-                <div className="relative space-y-4">
+                <div className="relative space-y-3">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-accent/20 rounded-full border border-brand-accent/30">
                     <Zap className="w-3 h-3 text-brand-accent" />
                     <span className="text-[8px] font-black text-brand-accent uppercase tracking-[0.2em]">Yangi</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none">
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none">
                     {t.pcBuilder}
                   </h2>
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
@@ -1235,10 +1263,10 @@ export default function App() {
                 </div>
 
                 <div className="relative flex items-end justify-between">
-                  <button className="px-6 py-3 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_#00d4ff] transition-all">
+                  <button className="px-5 py-2.5 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_#00d4ff] transition-all">
                     Boshlash
                   </button>
-                  <Monitor className="w-20 h-20 text-brand-accent/40 drop-shadow-[0_0_30px_rgba(0,212,255,0.3)]" />
+                  <Monitor className="w-16 h-16 text-brand-accent/40 drop-shadow-[0_0_30px_rgba(0,212,255,0.3)]" />
                 </div>
               </motion.div>
 
@@ -1246,7 +1274,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsSetupAnalystOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1255,15 +1283,15 @@ export default function App() {
                     scale: [1, 1.3, 1]
                   }}
                   transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-10 -top-10 w-40 h-40 bg-purple-600/10 rounded-full blur-[60px]"
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-purple-600/10 rounded-full blur-[40px]"
                 />
                 
-                <div className="relative space-y-4">
+                <div className="relative space-y-3">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-600/20 rounded-full border border-purple-600/30">
                     <Camera className="w-3 h-3 text-purple-400" />
                     <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">AI Yordamchi</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
                     AI Setup <span className="text-purple-400">Analyst</span>
                   </h2>
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
@@ -1272,10 +1300,10 @@ export default function App() {
                 </div>
 
                 <div className="relative flex items-end justify-between">
-                  <button className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all">
+                  <button className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all">
                     Baholash
                   </button>
-                  <Sparkles className="w-20 h-20 text-purple-400/40 drop-shadow-[0_0_30px_rgba(147,51,234,0.3)]" />
+                  <Sparkles className="w-16 h-16 text-purple-400/40 drop-shadow-[0_0_30px_rgba(147,51,234,0.3)]" />
                 </div>
               </motion.div>
 
@@ -1283,7 +1311,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsSAIConfiguratorOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 via-emerald-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1292,15 +1320,15 @@ export default function App() {
                     scale: [1, 1.2, 1]
                   }}
                   transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-[60px]"
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-600/10 rounded-full blur-[40px]"
                 />
                 
-                <div className="relative space-y-4">
+                <div className="relative space-y-3">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-600/20 rounded-full border border-emerald-600/30">
                     <Bot className="w-3 h-3 text-emerald-400" />
                     <span className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.2em]">Smart Assembler</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
                     S-AI <span className="text-emerald-400">Configurator</span>
                   </h2>
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
@@ -1309,10 +1337,10 @@ export default function App() {
                 </div>
 
                 <div className="relative flex items-end justify-between">
-                  <button className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all">
+                  <button className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all">
                     Chat
                   </button>
-                  <MessageSquare className="w-20 h-20 text-emerald-400/40 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]" />
+                  <MessageSquare className="w-16 h-16 text-emerald-400/40 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]" />
                 </div>
               </motion.div>
 
@@ -1320,7 +1348,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsHardwareHealthOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-blue-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1329,15 +1357,15 @@ export default function App() {
                     scale: [1, 1.3, 1]
                   }}
                   transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-10 -top-10 w-40 h-40 bg-blue-600/10 rounded-full blur-[60px]"
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-blue-600/10 rounded-full blur-[40px]"
                 />
                 
-                <div className="relative space-y-4">
+                <div className="relative space-y-3">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/20 rounded-full border border-blue-600/30">
                     <Activity className="w-3 h-3 text-blue-400" />
                     <span className="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em]">Diagnostics</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
                     Hardware <span className="text-blue-400">Health</span>
                   </h2>
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
@@ -1346,10 +1374,84 @@ export default function App() {
                 </div>
 
                 <div className="relative flex items-end justify-between">
-                  <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
+                  <button className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
                     Tekshirish
                   </button>
-                  <Activity className="w-20 h-20 text-blue-400/40 drop-shadow-[0_0_30px_rgba(37,99,235,0.3)]" />
+                  <Activity className="w-16 h-16 text-blue-400/40 drop-shadow-[0_0_30px_rgba(37,99,235,0.3)]" />
+                </div>
+              </motion.div>
+
+              {/* Stress Test Banner */}
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsStressTestOpen(true)}
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 via-red-600/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-red-600/10 rounded-full blur-[40px]"
+                />
+                
+                <div className="relative space-y-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 rounded-full border border-red-600/30">
+                    <Flame className="w-3 h-3 text-red-400" />
+                    <span className="text-[8px] font-black text-red-400 uppercase tracking-[0.2em]">Stress Test</span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
+                    Build & <span className="text-red-400">Destroy</span>
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    Tizimni sinab ko'ring!
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all">
+                    Sinash
+                  </button>
+                  <Flame className="w-16 h-16 text-red-400/40 drop-shadow-[0_0_30px_rgba(220,38,38,0.3)]" />
+                </div>
+              </motion.div>
+
+              {/* S-EYE Control Banner */}
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsSEyeActive(!isSEyeActive)}
+                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
+              >
+                <div className={`absolute inset-0 transition-all duration-500 ${isSEyeActive ? 'bg-cyan-500/30' : 'bg-cyan-600/20'} via-cyan-600/5 to-transparent backdrop-blur-xl border border-white/10`} />
+                <motion.div
+                  animate={{ 
+                    rotate: [360, 0],
+                    scale: [1, 1.3, 1]
+                  }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-8 -top-8 w-32 h-32 bg-cyan-600/10 rounded-full blur-[40px]"
+                />
+                
+                <div className="relative space-y-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-600/20 rounded-full border border-cyan-600/30">
+                    <Video className="w-3 h-3 text-cyan-400" />
+                    <span className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.2em]">Technological</span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
+                    S-EYE <span className="text-cyan-400">Control</span>
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    Ko'z bilan boshqaring!
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className={`px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${isSEyeActive ? 'bg-red-600 text-white' : 'bg-cyan-600 text-white'}`}>
+                    {isSEyeActive ? 'O\'chirish' : 'Yoqish'}
+                  </button>
+                  <Eye className="w-16 h-16 text-cyan-400/40 drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]" />
                 </div>
               </motion.div>
             </div>
@@ -2436,6 +2538,28 @@ export default function App() {
           });
           setIsHardwareHealthOpen(false);
           setIsCartOpen(true);
+        }}
+      />
+
+      <StressTest
+        isOpen={isStressTestOpen}
+        onClose={() => setIsStressTestOpen(false)}
+        language={language}
+        products={products}
+      />
+
+      <SEyeControl
+        isActive={isSEyeActive}
+        onToggle={() => setIsSEyeActive(!isSEyeActive)}
+        focusedProductId={focusedProductId}
+        onFavorite={(id) => {
+          const product = products.find(p => p.id === id);
+          if (product) {
+            setFavorites(prev => {
+              if (prev.find(f => f.id === id)) return prev;
+              return [...prev, product];
+            });
+          }
         }}
       />
 
