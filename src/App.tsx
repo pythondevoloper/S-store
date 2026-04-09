@@ -8,9 +8,10 @@ import Checkout from "./components/Checkout";
 import ProductDetails from "./components/ProductDetails";
 import LogisticsTracker from "./components/LogisticsTracker";
 import AdminPanel from "./components/AdminPanel";
-import PCBuilder from "./components/PCBuilder";
+import VirtualWorkshop from "./components/VirtualWorkshop";
+import AISetupAnalyst from "./components/AISetupAnalyst";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
@@ -167,6 +168,7 @@ export default function App() {
   const [userAnalytics, setUserAnalytics] = useState<any>(null);
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
   const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
+  const [isSetupAnalystOpen, setIsSetupAnalystOpen] = useState(false);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -1282,6 +1284,59 @@ export default function App() {
               </motion.div>
             </div>
 
+            {/* AI Setup Analyst Banner */}
+            <div className="max-w-7xl mx-auto px-6 mt-8">
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsSetupAnalystOpen(true)}
+                className="relative overflow-hidden rounded-[40px] p-8 md:p-12 cursor-pointer group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <motion.div
+                  animate={{ 
+                    rotate: [360, 0],
+                    scale: [1, 1.3, 1]
+                  }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-20 -top-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px]"
+                />
+                
+                <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="space-y-4 text-center md:text-left">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-600/20 rounded-full border border-purple-600/30">
+                      <Camera className="w-4 h-4 text-purple-400" />
+                      <span className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">AI Yordamchi</span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none text-white">
+                      AI Setup <span className="text-purple-400">Analyst</span>
+                    </h2>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs max-w-md">
+                      Setupingizni rasmga oling va AI orqali baholang! Kamchiliklarni bilib oling va yaxshilang.
+                    </p>
+                    <div className="flex items-center gap-4 justify-center md:justify-start pt-4">
+                      <button className="px-8 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all">
+                        Baholashni boshlash
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="relative w-full max-w-sm aspect-square md:aspect-video flex items-center justify-center">
+                    <motion.div
+                      animate={{ 
+                        y: [0, -20, 0],
+                        rotateY: [0, 10, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="relative z-10"
+                    >
+                      <Sparkles className="w-32 h-32 text-purple-400 drop-shadow-[0_0_30px_rgba(147,51,234,0.5)]" />
+                    </motion.div>
+                    <div className="absolute inset-0 bg-purple-600/5 rounded-full blur-3xl animate-pulse" />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
             <main className="max-w-7xl mx-auto px-6 py-12">
               {/* Categories Dropdown Section */}
               <div className="relative mb-12">
@@ -2313,13 +2368,17 @@ export default function App() {
         <CurrencyCalculator rate={exchangeRate} />
       </div>
 
-      <PCBuilder
-        isOpen={isPCBuilderOpen}
-        onClose={() => setIsPCBuilderOpen(false)}
-        onAddToCart={addToCart}
+      <VirtualWorkshop 
+        isOpen={isPCBuilderOpen} 
+        onClose={() => setIsPCBuilderOpen(false)} 
         language={language}
-        isUzsMode={isUzsMode}
-        exchangeRate={exchangeRate}
+        products={products}
+      />
+
+      <AISetupAnalyst 
+        isOpen={isSetupAnalystOpen} 
+        onClose={() => setIsSetupAnalystOpen(false)} 
+        language={language}
         products={products}
       />
 
