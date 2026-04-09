@@ -8,8 +8,9 @@ import Checkout from "./components/Checkout";
 import ProductDetails from "./components/ProductDetails";
 import LogisticsTracker from "./components/LogisticsTracker";
 import AdminPanel from "./components/AdminPanel";
+import PCBuilder from "./components/PCBuilder";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
@@ -165,6 +166,7 @@ export default function App() {
   const [profileEmail, setProfileEmail] = useState("");
   const [userAnalytics, setUserAnalytics] = useState<any>(null);
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
+  const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -961,6 +963,7 @@ export default function App() {
               onTrackClick={() => setIsTrackingOpen(true)}
               onWarrantyClick={() => setIsWarrantyModalOpen(true)}
               onProfileClick={() => setIsProfileOpen(true)}
+              onPCBuilderClick={() => setIsPCBuilderOpen(true)}
               user={user}
               userData={userData}
               onLogin={loginWithGoogle}
@@ -1166,6 +1169,91 @@ export default function App() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* PC Builder Banner */}
+            <div className="max-w-7xl mx-auto px-6 mt-12">
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsPCBuilderOpen(true)}
+                className="relative overflow-hidden rounded-[40px] p-8 md:p-12 cursor-pointer group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-20 -top-20 w-80 h-80 bg-brand-accent/10 rounded-full blur-[100px]"
+                />
+                
+                <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="space-y-4 text-center md:text-left">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-accent/20 rounded-full border border-brand-accent/30">
+                      <Zap className="w-4 h-4 text-brand-accent" />
+                      <span className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em]">Yangi bo'lim</span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
+                      {t.pcBuilder}
+                    </h2>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs max-w-md">
+                      {t.buildYourPC} - O'zingizga mos bo'lgan eng kuchli kompyuterni biz bilan birga yig'ing!
+                    </p>
+                    <div className="flex items-center gap-4 justify-center md:justify-start pt-4">
+                      <button className="px-8 py-4 bg-brand-accent text-brand-bg rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_#00d4ff] transition-all">
+                        Hozir boshlash
+                      </button>
+                      <div className="flex -space-x-3">
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="w-10 h-10 rounded-full border-2 border-brand-bg bg-white/10 overflow-hidden">
+                            <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="User" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                        <div className="w-10 h-10 rounded-full border-2 border-brand-bg bg-brand-accent flex items-center justify-center text-[10px] font-black text-brand-bg">
+                          +1k
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative w-full max-w-sm aspect-square md:aspect-video flex items-center justify-center">
+                    <motion.div
+                      animate={{ 
+                        y: [0, -20, 0],
+                        rotateY: [0, 10, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="relative z-10"
+                    >
+                      <Monitor className="w-48 h-48 md:w-64 md:h-64 text-brand-accent drop-shadow-[0_0_50px_rgba(0,212,255,0.5)]" />
+                      <motion.div
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute inset-0 flex items-center justify-center"
+                      >
+                        <Cpu className="w-16 h-16 md:w-24 md:h-24 text-white/20" />
+                      </motion.div>
+                    </motion.div>
+                    
+                    {/* Floating Parts */}
+                    <motion.div
+                      animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
+                      transition={{ duration: 5, repeat: Infinity }}
+                      className="absolute top-0 left-0 p-4 glass rounded-2xl border border-white/10"
+                    >
+                      <Cpu className="w-8 h-8 text-brand-accent" />
+                    </motion.div>
+                    <motion.div
+                      animate={{ y: [0, -40, 0], x: [0, -30, 0] }}
+                      transition={{ duration: 6, repeat: Infinity }}
+                      className="absolute bottom-0 right-0 p-4 glass rounded-2xl border border-white/10"
+                    >
+                      <Zap className="w-8 h-8 text-yellow-500" />
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
 
             <main className="max-w-7xl mx-auto px-6 py-12">
               {/* Categories Dropdown Section */}
@@ -2197,6 +2285,16 @@ export default function App() {
       <div className="fixed bottom-24 right-6 z-40 hidden md:block">
         <CurrencyCalculator rate={exchangeRate} />
       </div>
+
+      <PCBuilder
+        isOpen={isPCBuilderOpen}
+        onClose={() => setIsPCBuilderOpen(false)}
+        onAddToCart={addToCart}
+        language={language}
+        isUzsMode={isUzsMode}
+        exchangeRate={exchangeRate}
+        products={products}
+      />
 
       <footer className="border-t border-white/10 py-12 px-6 mt-24 bg-black/20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">

@@ -975,6 +975,14 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                       <option value="Noutbuklar">Noutbuklar</option>
                       <option value="Quloqchinlar">Quloqchinlar</option>
                       <option value="Komponentlar">Komponentlar</option>
+                      <option value="CPU">CPU (Protsessor)</option>
+                      <option value="GPU">GPU (Videokarta)</option>
+                      <option value="Motherboard">Motherboard (Ona plata)</option>
+                      <option value="RAM">RAM (Operativ xotira)</option>
+                      <option value="Storage">Storage (Xotira)</option>
+                      <option value="PSU">PSU (Blok pitaniya)</option>
+                      <option value="Case">Case (Korpus)</option>
+                      <option value="Cooler">Cooler (Sovutish tizimi)</option>
                     </select>
                   </div>
 
@@ -1079,7 +1087,12 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold truncate">{product.name}</h4>
                       <p className="text-brand-accent font-bold text-sm">${product.price}</p>
-                      <p className="text-xs text-gray-500">{product.category}</p>
+                      <p className="text-xs text-gray-500">
+                        {product.category}
+                        {["CPU", "GPU", "Motherboard", "RAM", "Storage", "PSU", "Case", "Cooler"].includes(product.category) && (
+                          <span className="ml-2 px-1.5 py-0.5 bg-brand-accent/20 text-brand-accent text-[8px] font-black uppercase rounded">PC Part</span>
+                        )}
+                      </p>
                     </div>
                     <button
                       onClick={() => onDeleteProduct(product.id)}

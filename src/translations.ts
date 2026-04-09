@@ -42,6 +42,8 @@ export const translations = {
     check: "Tekshirish",
     searching: "Qidirilmoqda...",
     noWarranties: "Hozircha kafolatlar topilmadi",
+    pcBuilder: "Kompyuter Konstruktor",
+    buildYourPC: "O'z kompyuteringizni yig'ing",
   },
   en: {
     categories: "Categories",
@@ -86,6 +88,8 @@ export const translations = {
     check: "Check",
     searching: "Searching...",
     noWarranties: "No warranties found yet",
+    pcBuilder: "PC Builder",
+    buildYourPC: "Build Your Custom PC",
   }
 };
 

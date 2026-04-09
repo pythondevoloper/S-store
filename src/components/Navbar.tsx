@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogOut } from "lucide-react";
+import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogOut, Cpu } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
 import React, { useState, useRef, useEffect } from "react";
@@ -25,6 +25,7 @@ interface NavbarProps {
   onTrackClick: () => void;
   onWarrantyClick: () => void;
   onProfileClick: () => void;
+  onPCBuilderClick: () => void;
   user: FirebaseUser | null | undefined;
   userData: any;
   onLogin: () => void;
@@ -51,6 +52,7 @@ export default function Navbar({
   onTrackClick,
   onWarrantyClick,
   onProfileClick,
+  onPCBuilderClick,
   user,
   userData,
   onLogin,
@@ -164,6 +166,17 @@ export default function Navbar({
             )}
           </AnimatePresence>
         </div>
+
+        {/* PC Builder Button */}
+        <button
+          onClick={onPCBuilderClick}
+          className="hidden xl:flex items-center gap-2 px-4 py-2 bg-brand-accent/10 border border-brand-accent/20 rounded-xl hover:bg-brand-accent/20 transition-all group"
+        >
+          <Cpu className="w-4 h-4 text-brand-accent group-hover:rotate-12 transition-transform" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-brand-accent">
+            {t.pcBuilder}
+          </span>
+        </button>
       </div>
 
       <div className="flex-1 max-w-md mx-8 relative hidden sm:block">
