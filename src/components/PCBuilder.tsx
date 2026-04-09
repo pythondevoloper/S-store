@@ -14,42 +14,6 @@ interface PCPart {
   specs: Record<string, string>;
 }
 
-const PC_PARTS: PCPart[] = [
-  // CPUs
-  { id: "cpu1", name: "Intel Core i9-14900K", category: "CPU", price: 589, image: "https://picsum.photos/seed/cpu1/400/400", specs: { "Cores": "24", "Threads": "32", "Base Clock": "3.2 GHz" } },
-  { id: "cpu2", name: "AMD Ryzen 9 7950X", category: "CPU", price: 549, image: "https://picsum.photos/seed/cpu2/400/400", specs: { "Cores": "16", "Threads": "32", "Base Clock": "4.5 GHz" } },
-  { id: "cpu3", name: "Intel Core i7-14700K", category: "CPU", price: 409, image: "https://picsum.photos/seed/cpu3/400/400", specs: { "Cores": "20", "Threads": "28", "Base Clock": "3.4 GHz" } },
-  
-  // GPUs
-  { id: "gpu1", name: "NVIDIA RTX 4090", category: "GPU", price: 1599, image: "https://picsum.photos/seed/gpu1/400/400", specs: { "VRAM": "24GB GDDR6X", "TDP": "450W" } },
-  { id: "gpu2", name: "NVIDIA RTX 4080 Super", category: "GPU", price: 999, image: "https://picsum.photos/seed/gpu2/400/400", specs: { "VRAM": "16GB GDDR6X", "TDP": "320W" } },
-  { id: "gpu3", name: "AMD Radeon RX 7900 XTX", category: "GPU", price: 949, image: "https://picsum.photos/seed/gpu3/400/400", specs: { "VRAM": "24GB GDDR6", "TDP": "355W" } },
-
-  // Motherboards
-  { id: "mb1", name: "ASUS ROG Maximus Z790 Hero", category: "Motherboard", price: 629, image: "https://picsum.photos/seed/mb1/400/400", specs: { "Socket": "LGA1700", "Chipset": "Z790" } },
-  { id: "mb2", name: "MSI MPG X670E Carbon WiFi", category: "Motherboard", price: 459, image: "https://picsum.photos/seed/mb2/400/400", specs: { "Socket": "AM5", "Chipset": "X670E" } },
-
-  // RAM
-  { id: "ram1", name: "Corsair Vengeance RGB 32GB (2x16GB) DDR5-6000", category: "RAM", price: 129, image: "https://picsum.photos/seed/ram1/400/400", specs: { "Capacity": "32GB", "Speed": "6000MHz" } },
-  { id: "ram2", name: "G.Skill Trident Z5 RGB 64GB (2x32GB) DDR5-6400", category: "RAM", price: 219, image: "https://picsum.photos/seed/ram2/400/400", specs: { "Capacity": "64GB", "Speed": "6400MHz" } },
-
-  // Storage
-  { id: "st1", name: "Samsung 990 Pro 2TB NVMe SSD", category: "Storage", price: 179, image: "https://picsum.photos/seed/st1/400/400", specs: { "Capacity": "2TB", "Read Speed": "7450MB/s" } },
-  { id: "st2", name: "Crucial P5 Plus 1TB NVMe SSD", category: "Storage", price: 89, image: "https://picsum.photos/seed/st2/400/400", specs: { "Capacity": "1TB", "Read Speed": "6600MB/s" } },
-
-  // PSU
-  { id: "psu1", name: "Corsair RM1000x 1000W 80+ Gold", category: "PSU", price: 189, image: "https://picsum.photos/seed/psu1/400/400", specs: { "Wattage": "1000W", "Efficiency": "80+ Gold" } },
-  { id: "psu2", name: "EVGA SuperNOVA 850G6 850W", category: "PSU", price: 149, image: "https://picsum.photos/seed/psu2/400/400", specs: { "Wattage": "850W", "Efficiency": "80+ Gold" } },
-
-  // Cases
-  { id: "case1", name: "Lian Li PC-O11 Dynamic", category: "Case", price: 149, image: "https://picsum.photos/seed/case1/400/400", specs: { "Type": "Mid Tower", "Material": "Tempered Glass" } },
-  { id: "case2", name: "NZXT H9 Flow", category: "Case", price: 159, image: "https://picsum.photos/seed/case2/400/400", specs: { "Type": "Mid Tower", "Color": "Black/White" } },
-
-  // Coolers
-  { id: "cool1", name: "NZXT Kraken Elite 360 RGB", category: "Cooler", price: 279, image: "https://picsum.photos/seed/cool1/400/400", specs: { "Type": "AIO Liquid", "Size": "360mm" } },
-  { id: "cool2", name: "Noctua NH-D15 chromax.black", category: "Cooler", price: 119, image: "https://picsum.photos/seed/cool2/400/400", specs: { "Type": "Air Cooler", "Fans": "2x 140mm" } },
-];
-
 const CATEGORIES: PCPart["category"][] = ["CPU", "GPU", "Motherboard", "RAM", "Storage", "PSU", "Case", "Cooler"];
 
 interface PCBuilderProps {
@@ -81,9 +45,7 @@ export default function PCBuilder({ isOpen, onClose, onAddToCart, language, isUz
       }));
   }, [products]);
 
-  // Merge with default parts if needed, or just use products
-  // For now, let's just use products to follow the "admin add product" requirement
-  const allParts = pcPartsFromProducts.length > 0 ? pcPartsFromProducts : PC_PARTS;
+  const allParts = pcPartsFromProducts;
 
   const currentCategory = CATEGORIES[activeCategoryIndex];
   const categoryParts = allParts.filter(p => p.category === currentCategory);
@@ -217,45 +179,59 @@ export default function PCBuilder({ isOpen, onClose, onAddToCart, language, isUz
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {categoryParts.map((part) => (
-                    <motion.div
-                      key={part.id}
-                      layoutId={part.id}
-                      onClick={() => handleSelectPart(part)}
-                      className={`group relative glass rounded-3xl p-6 border transition-all cursor-pointer ${
-                        selectedParts[currentCategory]?.id === part.id 
-                          ? "border-brand-accent bg-brand-accent/5" 
-                          : "border-white/5 hover:border-white/20 hover:bg-white/5"
-                      }`}
-                    >
-                      <div className="flex gap-6">
-                        <div className="w-32 h-32 rounded-2xl overflow-hidden bg-black/20 shrink-0">
-                          <img src={part.image} alt={part.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div className="flex justify-between items-start">
-                            <h4 className="font-bold text-lg leading-tight">{part.name}</h4>
-                            <span className="text-brand-accent font-black">{formatCurrency(part.price, isUzsMode, exchangeRate)}</span>
+                {categoryParts.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {categoryParts.map((part) => (
+                      <motion.div
+                        key={part.id}
+                        layoutId={part.id}
+                        onClick={() => handleSelectPart(part)}
+                        className={`group relative glass rounded-3xl p-6 border transition-all cursor-pointer ${
+                          selectedParts[currentCategory]?.id === part.id 
+                            ? "border-brand-accent bg-brand-accent/5" 
+                            : "border-white/5 hover:border-white/20 hover:bg-white/5"
+                        }`}
+                      >
+                        <div className="flex gap-6">
+                          <div className="w-32 h-32 rounded-2xl overflow-hidden bg-black/20 shrink-0">
+                            <img src={part.image} alt={part.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(part.specs).map(([key, val]) => (
-                              <div key={key} className="flex flex-col">
-                                <span className="text-[8px] text-gray-500 uppercase font-black">{key}</span>
-                                <span className="text-[10px] font-bold">{val}</span>
-                              </div>
-                            ))}
+                          <div className="flex-1 space-y-3">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-bold text-lg leading-tight">{part.name}</h4>
+                              <span className="text-brand-accent font-black">{formatCurrency(part.price, isUzsMode, exchangeRate)}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(part.specs).map(([key, val]) => (
+                                <div key={key} className="flex flex-col">
+                                  <span className="text-[8px] text-gray-500 uppercase font-black">{key}</span>
+                                  <span className="text-[10px] font-bold">{val}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {selectedParts[currentCategory]?.id === part.id && (
-                        <div className="absolute top-4 right-4">
-                          <CheckCircle2 className="w-6 h-6 text-brand-accent" />
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
+                        {selectedParts[currentCategory]?.id === part.id && (
+                          <div className="absolute top-4 right-4">
+                            <CheckCircle2 className="w-6 h-6 text-brand-accent" />
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                    <div className="w-24 h-24 bg-white/5 rounded-[32px] flex items-center justify-center border border-white/10">
+                      <Zap className="w-12 h-12 text-gray-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-bold uppercase tracking-tighter">Komponentlar topilmadi</h4>
+                      <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                        Hozircha ushbu kategoriya uchun mahsulotlar mavjud emas. Admin panel orqali yangi komponentlar qo'shishingiz mumkin.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Bottom Navigation */}
