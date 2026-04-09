@@ -828,6 +828,57 @@ async function startServer() {
     }
   });
 
+  app.post("/api/admin/bot/broadcast", async (req, res) => {
+    const adminRole = req.headers["x-admin-role"];
+    if (adminRole !== "SuperAdmin") {
+      return res.status(403).json({ message: "Forbidden. SuperAdmin only." });
+    }
+
+    const { message, photo } = req.body;
+    if (!message) return res.status(400).json({ message: "Message is required" });
+
+    const settings = await readSettings();
+    const activeBot = settings.bots.find((b: any) => b.status === "active") || settings.bots[0];
+    const token = activeBot?.token;
+    const chatId = process.env.TELEGRAM_CHAT_ID; // In a real app, this would be a list of user IDs
+
+    if (!token || !chatId) {
+      return res.status(400).json({ message: "Bot token or target chat ID not configured" });
+    }
+
+    try {
+      if (photo) {
+        await sendTelegramPhoto(photo, message);
+      } else {
+        await sendTelegramMessage(message);
+      }
+      res.json({ message: "Broadcast sent successfully" });
+    } catch (error: any) {
+      console.error("Error sending broadcast:", error.message);
+      res.status(500).json({ message: "Failed to send broadcast" });
+    }
+  });
+
+  app.get("/api/admin/bot/stats", async (req, res) => {
+    const adminRole = req.headers["x-admin-role"];
+    if (adminRole !== "SuperAdmin") {
+      return res.status(403).json({ message: "Forbidden. SuperAdmin only." });
+    }
+
+    const orders = await readOrders();
+    const logs = await readLogs();
+    
+    const botLogs = logs.filter((l: any) => l.message.includes("Bot") || l.message.includes("Telegram"));
+    const botOrders = orders.filter((o: any) => o.userId).length;
+
+    res.json({
+      totalInteractions: botLogs.length,
+      ordersViaBot: botOrders,
+      status: botProcess ? "Running" : "Stopped",
+      lastRestart: new Date(serverStartTime).toISOString()
+    });
+  });
+
   app.get("/api/promocodes", async (req, res) => {
     const codes = await readPromoCodes();
     // Only return active codes for the public API
