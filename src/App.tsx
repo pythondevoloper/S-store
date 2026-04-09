@@ -671,6 +671,9 @@ export default function App() {
   const handleCheckout = async (customerData: any) => {
     localStorage.setItem("user_email", customerData.email);
     
+    const isYaypan = customerData.address?.toLowerCase().includes("yaypan");
+    const deliveryTime = isYaypan ? "1 day" : "2.3 days";
+
     const orderData = {
       ...customerData,
       userId: user?.uid || null,
@@ -681,6 +684,7 @@ export default function App() {
       ref: refToken,
       exchangeRateUsed: exchangeRate,
       status: "Pending",
+      deliveryTime,
       createdAt: new Date().toISOString()
     };
 
@@ -810,13 +814,17 @@ export default function App() {
         price = fastCheckoutProduct.dynamicPrice;
       }
 
+      const isYaypan = fastCheckoutAddress?.toLowerCase().includes("yaypan");
+      const deliveryTime = isYaypan ? "1 day" : "2.3 days";
+
       const res = await axios.post("/api/fast-order", {
         name: fastCheckoutName,
         phone: fastCheckoutPhone,
         address: fastCheckoutAddress,
         productId: fastCheckoutProduct.id,
         price: price,
-        giftWrapping: fastCheckoutGift
+        giftWrapping: fastCheckoutGift,
+        deliveryTime
       });
 
       setFastCheckoutSuccess(res.data.message);
@@ -1088,6 +1096,25 @@ export default function App() {
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
                               />
                             </div>
+
+                            {/* Estimated Delivery Time */}
+                            {fastCheckoutAddress && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 p-3 bg-brand-accent/5 border border-brand-accent/10 rounded-xl"
+                              >
+                                <Clock className="w-4 h-4 text-brand-accent" />
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Taxminiy yetkazib berish</span>
+                                  <span className="text-xs font-black">
+                                    {fastCheckoutAddress.toLowerCase().includes("yaypan") 
+                                      ? "1 kun" 
+                                      : "2.3 kun"}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            )}
                           </div>
                         </div>
 

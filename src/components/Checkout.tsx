@@ -400,6 +400,25 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-accent transition-colors"
                       />
                     </div>
+
+                    {/* Estimated Delivery Time */}
+                    {formData.address && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 p-3 bg-brand-accent/5 border border-brand-accent/10 rounded-xl"
+                      >
+                        <Clock className="w-4 h-4 text-brand-accent" />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Taxminiy yetkazib berish</span>
+                          <span className="text-xs font-black">
+                            {formData.address.toLowerCase().includes("yaypan") 
+                              ? "1 kun" 
+                              : "2.3 kun"}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
 
                   {/* Payment Method Selection */}
