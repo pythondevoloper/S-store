@@ -178,6 +178,7 @@ export default function App() {
   const [isStressTestOpen, setIsStressTestOpen] = useState(false);
   const [isSEyeActive, setIsSEyeActive] = useState(false);
   const [focusedProductId, setFocusedProductId] = useState<string | null>(null);
+  const [wowDiscounts, setWowDiscounts] = useState<Record<string, boolean>>({});
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -591,9 +592,14 @@ export default function App() {
         );
       }
       // Apply Flash Sale Price if applicable
-      const price = (isFlashSaleActive && flashSaleProduct?.id === product.id) 
+      let price = (isFlashSaleActive && flashSaleProduct?.id === product.id) 
         ? Math.round(product.price * 0.95) 
         : product.price;
+
+      // Apply Wow Discount if applicable
+      if (wowDiscounts[product.id]) {
+        price = Math.round(price * 0.95);
+      }
       
       return [...prev, { ...product, price, quantity: 1 }];
     });
@@ -746,6 +752,16 @@ export default function App() {
     }
   };
 
+  const handleWowEffect = (productId: string) => {
+    setWowDiscounts(prev => ({ ...prev, [productId]: true }));
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { x: 0.1, y: 0.8 }, // Bottom left near S-EYE HUD
+      colors: ["#00d4ff", "#ffffff"]
+    });
+  };
+
   const handleSetPriceAlert = async (productId: string, email: string, currentPrice: number) => {
     try {
       const res = await fetch("/api/price-alerts", {
@@ -822,6 +838,11 @@ export default function App() {
         price = Math.round(fastCheckoutProduct.price * 0.95);
       } else if (fastCheckoutProduct.dynamicPrice) {
         price = fastCheckoutProduct.dynamicPrice;
+      }
+
+      // Apply Wow Discount if applicable
+      if (wowDiscounts[fastCheckoutProduct.id]) {
+        price = Math.round(price * 0.95);
       }
 
       const isYaypan = fastCheckoutAddress?.toLowerCase().includes("yaypan");
@@ -1577,6 +1598,7 @@ export default function App() {
                       isFavorite={favorites.some((p) => p.id === product.id)}
                       onToggleFavorite={toggleFavorite}
                       isFlashSale={isFlashSaleActive && flashSaleProduct?.id === product.id}
+                      hasWowDiscount={wowDiscounts[product.id]}
                     />
                   ))}
                 </div>
@@ -2472,6 +2494,7 @@ export default function App() {
                         exchangeRate={exchangeRate}
                         isFavorite={true}
                         onToggleFavorite={toggleFavorite}
+                        hasWowDiscount={wowDiscounts[product.id]}
                       />
                     ))}
                   </div>
@@ -2552,6 +2575,7 @@ export default function App() {
         isActive={isSEyeActive}
         onToggle={() => setIsSEyeActive(!isSEyeActive)}
         focusedProductId={focusedProductId}
+        onWowEffect={handleWowEffect}
         onFavorite={(id) => {
           const product = products.find(p => p.id === id);
           if (product) {

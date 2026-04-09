@@ -8,15 +8,18 @@ interface SEyeControlProps {
   isActive: boolean;
   onToggle: () => void;
   onFavorite: (productId: string) => void;
+  onWowEffect: (productId: string) => void;
   focusedProductId: string | null;
 }
 
-const SEyeControl: React.FC<SEyeControlProps> = ({ isActive, onToggle, onFavorite, focusedProductId }) => {
+const SEyeControl: React.FC<SEyeControlProps> = ({ isActive, onToggle, onFavorite, onWowEffect, focusedProductId }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [headYaw, setHeadYaw] = useState(0); // -1 to 1 (left to right)
   const [headPitch, setHeadPitch] = useState(0); // -1 to 1 (up to down)
   const [isEyesClosed, setIsEyesClosed] = useState(false);
+  const [emotion, setEmotion] = useState<'neutral' | 'wow'>('neutral');
+  const [wowTriggeredFor, setWowTriggeredFor] = useState<string | null>(null);
   const [blinkStartTime, setBlinkStartTime] = useState<number | null>(null);
   const [blinkProgress, setBlinkProgress] = useState(0);
 
@@ -81,6 +84,27 @@ const SEyeControl: React.FC<SEyeControlProps> = ({ isActive, onToggle, onFavorit
         const threshold = 0.015; 
         const closed = leftDist < threshold && rightDist < threshold;
         setIsEyesClosed(closed);
+
+        // --- Emotion Detection (Wow Effect) ---
+        // Mouth corners: 61, 291
+        // Mouth top/bottom: 13, 14
+        const mouthLeft = landmarks[61];
+        const mouthRight = landmarks[291];
+        const mouthTop = landmarks[13];
+        const mouthBottom = landmarks[14];
+        
+        const mouthWidth = Math.sqrt(Math.pow(mouthRight.x - mouthLeft.x, 2) + Math.pow(mouthRight.y - mouthLeft.y, 2));
+        const mouthHeight = Math.sqrt(Math.pow(mouthBottom.x - mouthTop.x, 2) + Math.pow(mouthBottom.y - mouthTop.y, 2));
+        
+        const mouthRatio = mouthWidth / faceWidth;
+        const openRatio = mouthHeight / faceHeight;
+
+        // Smile detection (wide mouth) or Surprise detection (open mouth)
+        if (mouthRatio > 0.45 || openRatio > 0.12) {
+          setEmotion('wow');
+        } else {
+          setEmotion('neutral');
+        }
       } else {
         setHeadYaw(0);
         setIsEyesClosed(false);
@@ -155,6 +179,26 @@ const SEyeControl: React.FC<SEyeControlProps> = ({ isActive, onToggle, onFavorit
     return () => clearInterval(interval);
   }, [isActive, headYaw, headPitch]);
 
+  // Handle Wow Effect -> Discount
+  useEffect(() => {
+    if (!isActive || !focusedProductId) return;
+
+    if (emotion === 'wow' && wowTriggeredFor !== focusedProductId) {
+      onWowEffect(focusedProductId);
+      setWowTriggeredFor(focusedProductId);
+      
+      // Haptic feedback
+      if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+    }
+  }, [isActive, emotion, focusedProductId, wowTriggeredFor, onWowEffect]);
+
+  // Reset wow triggered when product changes significantly
+  useEffect(() => {
+    if (!focusedProductId) {
+      setWowTriggeredFor(null);
+    }
+  }, [focusedProductId]);
+
   // Handle Blink -> Favorite
   useEffect(() => {
     if (!isActive) return;
@@ -207,16 +251,38 @@ const SEyeControl: React.FC<SEyeControlProps> = ({ isActive, onToggle, onFavorit
                   <div className={`w-2 h-2 rounded-full ${isCameraReady ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                   <span className="text-[8px] font-black uppercase tracking-widest text-white/50">S-EYE Active</span>
                 </div>
-                {isEyesClosed && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="bg-emerald-500 p-1 rounded-full"
-                  >
-                    <Star className="w-3 h-3 text-white fill-current" />
-                  </motion.div>
-                )}
+                <div className="flex gap-1">
+                  {emotion === 'wow' && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="bg-brand-accent p-1 rounded-full"
+                    >
+                      <Zap className="w-3 h-3 text-brand-bg fill-current" />
+                    </motion.div>
+                  )}
+                  {isEyesClosed && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="bg-emerald-500 p-1 rounded-full"
+                    >
+                      <Star className="w-3 h-3 text-white fill-current" />
+                    </motion.div>
+                  )}
+                </div>
               </div>
+
+              {emotion === 'wow' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-brand-accent/20 border border-brand-accent/50 px-2 py-1 rounded-lg"
+                >
+                  <p className="text-[8px] font-black text-brand-accent uppercase tracking-tighter">Wow Effect Detected!</p>
+                  <p className="text-[6px] text-white/70 uppercase">5% Discount Unlocked</p>
+                </motion.div>
+              )}
 
               <div className="space-y-2">
               <div className="flex gap-2 items-end h-16">

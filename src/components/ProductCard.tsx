@@ -12,15 +12,20 @@ interface ProductCardProps {
   isFavorite: boolean;
   onToggleFavorite: (product: Product) => void;
   isFlashSale?: boolean;
+  hasWowDiscount?: boolean;
   key?: string | number;
 }
 
-export default function ProductCard({ product, onAddToCart, onShowDetails, isUzsMode, exchangeRate, isFavorite, onToggleFavorite, isFlashSale }: ProductCardProps) {
+export default function ProductCard({ product, onAddToCart, onShowDetails, isUzsMode, exchangeRate, isFavorite, onToggleFavorite, isFlashSale, hasWowDiscount }: ProductCardProps) {
   const averageRating = product.reviews?.length 
     ? (product.reviews.reduce((acc, r) => acc + r.rating, 0) / product.reviews.length).toFixed(1)
     : null;
 
-  const displayPrice = isFlashSale ? Math.round(product.price * 0.95) : (product.dynamicPrice || product.price);
+  let displayPrice = isFlashSale ? Math.round(product.price * 0.95) : (product.dynamicPrice || product.price);
+  
+  if (hasWowDiscount) {
+    displayPrice = Math.round(displayPrice * 0.95);
+  }
 
   return (
     <motion.div
@@ -68,6 +73,18 @@ export default function ProductCard({ product, onAddToCart, onShowDetails, isUzs
               >
                 <Zap className="w-2 h-2 fill-current" />
                 -5% SPECIAL
+              </motion.span>
+            </div>
+          )}
+          {hasWowDiscount && (
+            <div className="absolute top-14 left-4 z-10">
+              <motion.span
+                animate={{ scale: [1, 1.2, 1], rotate: [-2, 2, -2] }}
+                transition={{ repeat: Infinity, duration: 0.5 }}
+                className="px-3 py-1 bg-brand-accent text-brand-bg text-[8px] font-black uppercase tracking-widest rounded-full shadow-[0_0_20px_#00d4ff] flex items-center gap-1"
+              >
+                <Zap className="w-2 h-2 fill-current" />
+                WOW -5%
               </motion.span>
             </div>
           )}
