@@ -10,8 +10,10 @@ import LogisticsTracker from "./components/LogisticsTracker";
 import AdminPanel from "./components/AdminPanel";
 import VirtualWorkshop from "./components/VirtualWorkshop";
 import AISetupAnalyst from "./components/AISetupAnalyst";
+import SAIConfigurator from "./components/SAIConfigurator";
+import HardwareHealth from "./components/HardwareHealth";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
@@ -169,6 +171,8 @@ export default function App() {
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
   const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
   const [isSetupAnalystOpen, setIsSetupAnalystOpen] = useState(false);
+  const [isSAIConfiguratorOpen, setIsSAIConfiguratorOpen] = useState(false);
+  const [isHardwareHealthOpen, setIsHardwareHealthOpen] = useState(false);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -1199,140 +1203,153 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            {/* PC Builder Banner */}
-            <div className="max-w-7xl mx-auto px-6 mt-12">
+            {/* Feature Banners Grid */}
+            <div className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* PC Builder Banner */}
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsPCBuilderOpen(true)}
-                className="relative overflow-hidden rounded-[40px] p-8 md:p-12 cursor-pointer group"
+                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
                   animate={{ 
                     rotate: [0, 360],
                     scale: [1, 1.2, 1]
                   }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-20 -top-20 w-80 h-80 bg-brand-accent/10 rounded-full blur-[100px]"
+                  className="absolute -right-10 -top-10 w-40 h-40 bg-brand-accent/10 rounded-full blur-[60px]"
                 />
                 
-                <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="space-y-4 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-accent/20 rounded-full border border-brand-accent/30">
-                      <Zap className="w-4 h-4 text-brand-accent" />
-                      <span className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em]">Yangi bo'lim</span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
-                      {t.pcBuilder}
-                    </h2>
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs max-w-md">
-                      {t.buildYourPC} - O'zingizga mos bo'lgan eng kuchli kompyuterni biz bilan birga yig'ing!
-                    </p>
-                    <div className="flex items-center gap-4 justify-center md:justify-start pt-4">
-                      <button className="px-8 py-4 bg-brand-accent text-brand-bg rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_#00d4ff] transition-all">
-                        Hozir boshlash
-                      </button>
-                      <div className="flex -space-x-3">
-                        {[1, 2, 3, 4].map(i => (
-                          <div key={i} className="w-10 h-10 rounded-full border-2 border-brand-bg bg-white/10 overflow-hidden">
-                            <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="User" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                        <div className="w-10 h-10 rounded-full border-2 border-brand-bg bg-brand-accent flex items-center justify-center text-[10px] font-black text-brand-bg">
-                          +1k
-                        </div>
-                      </div>
-                    </div>
+                <div className="relative space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-accent/20 rounded-full border border-brand-accent/30">
+                    <Zap className="w-3 h-3 text-brand-accent" />
+                    <span className="text-[8px] font-black text-brand-accent uppercase tracking-[0.2em]">Yangi</span>
                   </div>
-                  
-                  <div className="relative w-full max-w-sm aspect-square md:aspect-video flex items-center justify-center">
-                    <motion.div
-                      animate={{ 
-                        y: [0, -20, 0],
-                        rotateY: [0, 10, 0]
-                      }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="relative z-10"
-                    >
-                      <Monitor className="w-48 h-48 md:w-64 md:h-64 text-brand-accent drop-shadow-[0_0_50px_rgba(0,212,255,0.5)]" />
-                      <motion.div
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        <Cpu className="w-16 h-16 md:w-24 md:h-24 text-white/20" />
-                      </motion.div>
-                    </motion.div>
-                    
-                    {/* Floating Parts */}
-                    <motion.div
-                      animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
-                      transition={{ duration: 5, repeat: Infinity }}
-                      className="absolute top-0 left-0 p-4 glass rounded-2xl border border-white/10"
-                    >
-                      <Cpu className="w-8 h-8 text-brand-accent" />
-                    </motion.div>
-                    <motion.div
-                      animate={{ y: [0, -40, 0], x: [0, -30, 0] }}
-                      transition={{ duration: 6, repeat: Infinity }}
-                      className="absolute bottom-0 right-0 p-4 glass rounded-2xl border border-white/10"
-                    >
-                      <Zap className="w-8 h-8 text-yellow-500" />
-                    </motion.div>
-                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none">
+                    {t.pcBuilder}
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    {t.buildYourPC}
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className="px-6 py-3 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_#00d4ff] transition-all">
+                    Boshlash
+                  </button>
+                  <Monitor className="w-20 h-20 text-brand-accent/40 drop-shadow-[0_0_30px_rgba(0,212,255,0.3)]" />
                 </div>
               </motion.div>
-            </div>
 
-            {/* AI Setup Analyst Banner */}
-            <div className="max-w-7xl mx-auto px-6 mt-8">
+              {/* AI Setup Analyst Banner */}
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsSetupAnalystOpen(true)}
-                className="relative overflow-hidden rounded-[40px] p-8 md:p-12 cursor-pointer group"
+                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
                   animate={{ 
                     rotate: [360, 0],
                     scale: [1, 1.3, 1]
                   }}
                   transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-20 -top-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px]"
+                  className="absolute -right-10 -top-10 w-40 h-40 bg-purple-600/10 rounded-full blur-[60px]"
                 />
                 
-                <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="space-y-4 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-600/20 rounded-full border border-purple-600/30">
-                      <Camera className="w-4 h-4 text-purple-400" />
-                      <span className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">AI Yordamchi</span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none text-white">
-                      AI Setup <span className="text-purple-400">Analyst</span>
-                    </h2>
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs max-w-md">
-                      Setupingizni rasmga oling va AI orqali baholang! Kamchiliklarni bilib oling va yaxshilang.
-                    </p>
-                    <div className="flex items-center gap-4 justify-center md:justify-start pt-4">
-                      <button className="px-8 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all">
-                        Baholashni boshlash
-                      </button>
-                    </div>
+                <div className="relative space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-600/20 rounded-full border border-purple-600/30">
+                    <Camera className="w-3 h-3 text-purple-400" />
+                    <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">AI Yordamchi</span>
                   </div>
-                  
-                  <div className="relative w-full max-w-sm aspect-square md:aspect-video flex items-center justify-center">
-                    <motion.div
-                      animate={{ 
-                        y: [0, -20, 0],
-                        rotateY: [0, 10, 0]
-                      }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="relative z-10"
-                    >
-                      <Sparkles className="w-32 h-32 text-purple-400 drop-shadow-[0_0_30px_rgba(147,51,234,0.5)]" />
-                    </motion.div>
-                    <div className="absolute inset-0 bg-purple-600/5 rounded-full blur-3xl animate-pulse" />
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                    AI Setup <span className="text-purple-400">Analyst</span>
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    Setupingizni baholang!
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all">
+                    Baholash
+                  </button>
+                  <Sparkles className="w-20 h-20 text-purple-400/40 drop-shadow-[0_0_30px_rgba(147,51,234,0.3)]" />
+                </div>
+              </motion.div>
+
+              {/* S-AI Configurator Banner */}
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsSAIConfiguratorOpen(true)}
+                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 via-emerald-600/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-[60px]"
+                />
+                
+                <div className="relative space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-600/20 rounded-full border border-emerald-600/30">
+                    <Bot className="w-3 h-3 text-emerald-400" />
+                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.2em]">Smart Assembler</span>
                   </div>
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                    S-AI <span className="text-emerald-400">Configurator</span>
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    Chat orqali yig'ing!
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all">
+                    Chat
+                  </button>
+                  <MessageSquare className="w-20 h-20 text-emerald-400/40 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]" />
+                </div>
+              </motion.div>
+
+              {/* Hardware Health Banner */}
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setIsHardwareHealthOpen(true)}
+                className="relative overflow-hidden rounded-[32px] p-6 md:p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-blue-600/5 to-transparent backdrop-blur-xl border border-white/10" />
+                <motion.div
+                  animate={{ 
+                    rotate: [360, 0],
+                    scale: [1, 1.3, 1]
+                  }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  className="absolute -right-10 -top-10 w-40 h-40 bg-blue-600/10 rounded-full blur-[60px]"
+                />
+                
+                <div className="relative space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/20 rounded-full border border-blue-600/30">
+                    <Activity className="w-3 h-3 text-blue-400" />
+                    <span className="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em]">Diagnostics</span>
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-white">
+                    Hardware <span className="text-blue-400">Health</span>
+                  </h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
+                    Tizimni tahlil qiling!
+                  </p>
+                </div>
+
+                <div className="relative flex items-end justify-between">
+                  <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
+                    Tekshirish
+                  </button>
+                  <Activity className="w-20 h-20 text-blue-400/40 drop-shadow-[0_0_30px_rgba(37,99,235,0.3)]" />
                 </div>
               </motion.div>
             </div>
@@ -2380,6 +2397,46 @@ export default function App() {
         onClose={() => setIsSetupAnalystOpen(false)} 
         language={language}
         products={products}
+      />
+
+      <SAIConfigurator 
+        isOpen={isSAIConfiguratorOpen} 
+        onClose={() => setIsSAIConfiguratorOpen(false)} 
+        language={language}
+        products={products}
+        onAddToCart={(product) => {
+          setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+              return prev.map(item => 
+                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+              );
+            }
+            return [...prev, { ...product, quantity: 1 }];
+          });
+          setIsSAIConfiguratorOpen(false);
+          setIsCartOpen(true);
+        }}
+      />
+
+      <HardwareHealth
+        isOpen={isHardwareHealthOpen}
+        onClose={() => setIsHardwareHealthOpen(false)}
+        language={language}
+        products={products}
+        onAddToCart={(product) => {
+          setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+              return prev.map(item => 
+                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+              );
+            }
+            return [...prev, { ...product, quantity: 1 }];
+          });
+          setIsHardwareHealthOpen(false);
+          setIsCartOpen(true);
+        }}
       />
 
       <footer className="border-t border-white/10 py-12 px-6 mt-24 bg-black/20">
