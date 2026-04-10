@@ -69,7 +69,15 @@ const SAIConfigurator: React.FC<SAIConfiguratorProps> = ({ isOpen, onClose, lang
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Check for API key and prompt if missing
+      if (!process.env.GEMINI_API_KEY) {
+        const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
+        if (!hasKey) {
+          await (window as any).aistudio?.openSelectKey?.();
+        }
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       
       // Prepare product data for AI
       const productSummary = products.map(p => ({
@@ -128,15 +136,29 @@ const SAIConfigurator: React.FC<SAIConfiguratorProps> = ({ isOpen, onClose, lang
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Configurator error:", error);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: language === 'uz' 
-          ? "Kechirasiz, tahlil qilishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring."
-          : "Sorry, an error occurred during analysis. Please try again."
-      }]);
+      
+      // If API key is invalid or requested entity not found, prompt for key selection
+      const errorMsg = error?.message || "";
+      if (errorMsg.includes("API key not valid") || errorMsg.includes("Requested entity was not found")) {
+        await (window as any).aistudio?.openSelectKey?.();
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: language === 'uz' 
+            ? "Iltimos, API kalitini tanlang va qayta urinib ko'ring."
+            : "Please select an API key and try again."
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: language === 'uz' 
+            ? "Kechirasiz, tahlil qilishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring."
+            : "Sorry, an error occurred during analysis. Please try again."
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }

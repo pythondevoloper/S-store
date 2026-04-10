@@ -62,7 +62,15 @@ const AISetupAnalyst: React.FC<AISetupAnalystProps> = ({ isOpen, onClose, langua
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Check for API key and prompt if missing
+      if (!process.env.GEMINI_API_KEY) {
+        const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
+        if (!hasKey) {
+          await (window as any).aistudio?.openSelectKey?.();
+        }
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       
       const base64Data = selectedImage.split(',')[1];
       const mimeType = selectedImage.split(';')[0].split(':')[1];
@@ -123,9 +131,17 @@ const AISetupAnalyst: React.FC<AISetupAnalystProps> = ({ isOpen, onClose, langua
 
       const analysis = JSON.parse(response.text);
       setResult(analysis);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Analysis failed:", err);
-      setError(language === 'uz' ? "Tahlil qilishda xatolik yuz berdi." : "An error occurred during analysis.");
+      
+      // If API key is invalid or requested entity not found, prompt for key selection
+      const errorMsg = err?.message || "";
+      if (errorMsg.includes("API key not valid") || errorMsg.includes("Requested entity was not found")) {
+        await (window as any).aistudio?.openSelectKey?.();
+        setError(language === 'uz' ? "Iltimos, API kalitini tanlang va qayta urinib ko'ring." : "Please select an API key and try again.");
+      } else {
+        setError(language === 'uz' ? "Tahlil qilishda xatolik yuz berdi." : "An error occurred during analysis.");
+      }
     } finally {
       setIsAnalyzing(false);
     }
