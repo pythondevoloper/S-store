@@ -6,7 +6,6 @@ import fs from "fs/promises";
 import axios from "axios";
 import FormData from "form-data";
 import nodemailer from "nodemailer";
-import { GoogleGenAI } from "@google/genai";
 import { spawn } from "child_process";
 import { createWorker } from "tesseract.js";
 
@@ -1426,114 +1425,14 @@ async function startServer() {
     res.json(recommended);
   });
   
-  app.post("/api/hardware-diagnostics", async (req, res) => {
-    const { specs, products, language } = req.body;
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ message: "Gemini API key not configured" });
-    }
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const productSummary = products.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        price: p.price,
-        specs: p.specs
-      }));
-
-      const prompt = `
-        You are "Digital Hardware Health" expert. 
-        Analyze these detected PC specs and suggest upgrades from the available products.
-        
-        Detected Specs: ${JSON.stringify(specs)}
-        Available Products: ${JSON.stringify(productSummary)}
-        
-        Your task:
-        1. Give an overall health score (0-100).
-        2. Categorize status: excellent, good, fair, poor.
-        3. Write a brief analysis of the current system.
-        4. Select up to 3 products from the store that would significantly improve performance.
-        5. For each recommendation, provide a specific reason and an estimated performance boost percentage (e.g., "40% increase").
-        
-        Respond in ${language === 'uz' ? 'Uzbek' : 'English'}.
-        Return the response in JSON format.
-      `;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "object",
-            properties: {
-              score: { type: "number" },
-              status: { type: "string", enum: ['excellent', 'good', 'fair', 'poor'] },
-              analysis: { type: "string" },
-              recommendations: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    productId: { type: "string" },
-                    reason: { type: "string" },
-                    performanceBoost: { type: "string" }
-                  },
-                  required: ["productId", "reason", "performanceBoost"]
-                }
-              }
-            },
-            required: ["score", "status", "analysis", "recommendations"]
-          }
-        }
-      });
-
-      res.json(JSON.parse(response.text));
-    } catch (error: any) {
-      console.error("Hardware Diagnostics AI Error:", error);
-      res.status(500).json({ message: "Diagnostics service is currently offline" });
-    }
-  });
-  
   app.post("/api/ai-assistant", async (req, res) => {
-    const { message } = req.body;
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ message: "Gemini API key not configured" });
-    }
+    // This route is deprecated. Gemini logic moved to frontend.
+    res.status(410).json({ message: "Please update your client. This API is deprecated." });
+  });
 
-    try {
-      const products = await readProducts();
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const productContext = products.map((p: any) => 
-        `- ${p.name}: ${p.price} (Category: ${p.category}). Description: ${p.description}`
-      ).join("\n");
-
-      const systemInstruction = `You are the S STORE AI Shopping Assistant. 
-      Help users find the best tech products from our catalog. 
-      Be professional, futuristic, and helpful. 
-      If a user asks for recommendations, use the following product list as context:
-      ${productContext}
-      
-      Always mention the price and why it's a good choice. 
-      If a product is not in the list, politely say we don't have it yet but suggest alternatives.
-      Answer in the same language as the user (Uzbek or English).`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: message,
-        config: {
-          systemInstruction
-        }
-      });
-
-      res.json({ text: response.text });
-    } catch (error: any) {
-      console.error("Gemini AI Error:", error);
-      res.status(500).json({ message: "AI Assistant is currently offline" });
-    }
+  app.post("/api/hardware-diagnostics", async (req, res) => {
+    // This route is deprecated. Gemini logic moved to frontend.
+    res.status(410).json({ message: "Please update your client. This API is deprecated." });
   });
 
   app.get("/api/my-warranties", async (req, res) => {

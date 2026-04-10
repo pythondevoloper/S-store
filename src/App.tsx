@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 import { Product, CartItem, Order, PriceAlert } from "./types";
 import Navbar from "./components/Navbar";
 import ProductCard from "./components/ProductCard";
@@ -884,19 +885,40 @@ export default function App() {
     e.preventDefault();
 
     const userMsg = aiInput.trim();
+    if (!userMsg) return;
+
     setAiMessages(prev => [...prev, { role: "user", text: userMsg }]);
     setAiInput("");
     setIsAiLoading(true);
 
     try {
-      const res = await fetch("/api/ai-assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg })
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+      
+      const productContext = products.map((p: any) => 
+        `- ${p.name}: ${p.price} (Category: ${p.category}). Description: ${p.description}`
+      ).join("\n");
+
+      const systemInstruction = `You are the S STORE AI Shopping Assistant. 
+      Help users find the best tech products from our catalog. 
+      Be professional, futuristic, and helpful. 
+      If a user asks for recommendations, use the following product list as context:
+      ${productContext}
+      
+      Always mention the price and why it's a good choice. 
+      If a product is not in the list, politely say we don't have it yet but suggest alternatives.
+      Answer in the same language as the user (Uzbek or English).`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: userMsg,
+        config: {
+          systemInstruction
+        }
       });
-      const data = await res.json();
-      setAiMessages(prev => [...prev, { role: "ai", text: data.text }]);
+
+      setAiMessages(prev => [...prev, { role: "ai", text: response.text }]);
     } catch (error) {
+      console.error("Gemini AI Error:", error);
       setAiMessages(prev => [...prev, { role: "ai", text: "Kechirasiz, hozirda AI yordamchisi bilan bog'lanib bo'lmadi." }]);
     } finally {
       setIsAiLoading(false);
