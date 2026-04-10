@@ -892,6 +892,14 @@ export default function App() {
     setIsAiLoading(true);
 
     try {
+      // Check for API key and prompt if missing
+      if (!process.env.GEMINI_API_KEY) {
+        const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
+        if (!hasKey) {
+          await (window as any).aistudio?.openSelectKey?.();
+        }
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       
       const productContext = products.map((p: any) => 
@@ -917,9 +925,17 @@ export default function App() {
       });
 
       setAiMessages(prev => [...prev, { role: "ai", text: response.text }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini AI Error:", error);
-      setAiMessages(prev => [...prev, { role: "ai", text: "Kechirasiz, hozirda AI yordamchisi bilan bog'lanib bo'lmadi." }]);
+      
+      // If API key is invalid or requested entity not found, prompt for key selection
+      const errorMsg = error?.message || "";
+      if (errorMsg.includes("API key not valid") || errorMsg.includes("Requested entity was not found")) {
+        await (window as any).aistudio?.openSelectKey?.();
+        setAiMessages(prev => [...prev, { role: "ai", text: "Iltimos, API kalitini tanlang va qayta urinib ko'ring." }]);
+      } else {
+        setAiMessages(prev => [...prev, { role: "ai", text: "Kechirasiz, hozirda AI yordamchisi bilan bog'lanib bo'lmadi." }]);
+      }
     } finally {
       setIsAiLoading(false);
     }

@@ -64,6 +64,14 @@ const HardwareHealth: React.FC<HardwareHealthProps> = ({ isOpen, onClose, langua
     }
 
     try {
+      // Check for API key and prompt if missing
+      if (!process.env.GEMINI_API_KEY) {
+        const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
+        if (!hasKey) {
+          await (window as any).aistudio?.openSelectKey?.();
+        }
+      }
+
       // Browser-detectable specs
       const specs = {
         cpuCores: navigator.hardwareConcurrency || 0,
@@ -135,8 +143,14 @@ const HardwareHealth: React.FC<HardwareHealthProps> = ({ isOpen, onClose, langua
         ...diagnosticData,
         specs
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Diagnostics error:", error);
+      
+      // If API key is invalid or requested entity not found, prompt for key selection
+      const errorMsg = error?.message || "";
+      if (errorMsg.includes("API key not valid") || errorMsg.includes("Requested entity was not found")) {
+        await (window as any).aistudio?.openSelectKey?.();
+      }
     } finally {
       setIsScanning(false);
     }
