@@ -13,10 +13,11 @@ import {
   Loader2,
   CheckCircle2,
   TrendingUp,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { Product } from '../types';
+import axios from 'axios';
 
 interface HardwareHealthProps {
   isOpen: boolean;
@@ -71,66 +72,14 @@ const HardwareHealth: React.FC<HardwareHealthProps> = ({ isOpen, onClose, langua
         userAgent: navigator.userAgent
       };
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const productSummary = products.map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        price: p.price,
-        specs: p.specs
-      }));
-
-      const prompt = `
-        You are "Digital Hardware Health" expert. 
-        Analyze these detected PC specs and suggest upgrades from the available products.
-        
-        Detected Specs: ${JSON.stringify(specs)}
-        Available Products: ${JSON.stringify(productSummary)}
-        
-        Your task:
-        1. Give an overall health score (0-100).
-        2. Categorize status: excellent, good, fair, poor.
-        3. Write a brief analysis of the current system.
-        4. Select up to 3 products from the store that would significantly improve performance.
-        5. For each recommendation, provide a specific reason and an estimated performance boost percentage (e.g., "40% increase").
-        
-        Respond in ${language === 'uz' ? 'Uzbek' : 'English'}.
-        Return the response in JSON format.
-      `;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.NUMBER },
-              status: { type: Type.STRING, enum: ['excellent', 'good', 'fair', 'poor'] },
-              analysis: { type: Type.STRING },
-              recommendations: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    productId: { type: Type.STRING },
-                    reason: { type: Type.STRING },
-                    performanceBoost: { type: Type.STRING }
-                  },
-                  required: ["productId", "reason", "performanceBoost"]
-                }
-              }
-            },
-            required: ["score", "status", "analysis", "recommendations"]
-          }
-        }
+      const response = await axios.post('/api/hardware-diagnostics', {
+        specs,
+        products,
+        language
       });
 
-      const aiResult = JSON.parse(response.text);
       setResult({
-        ...aiResult,
+        ...response.data,
         specs
       });
     } catch (error) {
@@ -382,12 +331,6 @@ const HardwareHealth: React.FC<HardwareHealthProps> = ({ isOpen, onClose, langua
 const Plus = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-  </svg>
-);
-
-const RefreshCw = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
   </svg>
 );
 
