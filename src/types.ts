@@ -23,6 +23,7 @@ export interface Product {
   reviews?: Review[];
   "3dModelUrl"?: string;
   stockQuantity: number;
+  sellerId?: string;
 }
 
 export interface GroupBuySession {

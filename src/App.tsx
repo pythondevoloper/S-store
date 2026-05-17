@@ -80,11 +80,11 @@ function CurrencyCalculator({ rate }: { rate: number }) {
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="glass p-4 rounded-2xl w-48 space-y-3 border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
+      className="glass p-3 rounded-xl w-40 space-y-2 border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.3)]"
     >
-      <div className="flex items-center gap-2 mb-1">
-        <Calculator className="w-3 h-3 text-brand-accent" />
-        <h4 className="text-[9px] font-bold uppercase tracking-widest">Converter</h4>
+      <div className="flex items-center gap-2 mb-0.5">
+        <Calculator className="w-2.5 h-2.5 text-brand-accent home-icon" />
+        <h4 className="text-[8px] font-bold uppercase tracking-widest">Converter</h4>
       </div>
       
       <div className="space-y-2">
@@ -778,12 +778,17 @@ export default function App() {
     }
   };
 
+  const sellerProducts = useMemo(() => {
+    if (userData?.role === "SuperAdmin") return products;
+    return products.filter(p => p.sellerId === user?.uid);
+  }, [products, user, userData]);
+
   const handleAddProduct = async (newProduct: Omit<Product, "id">) => {
     try {
       const res = await fetch("/api/admin/add-product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProduct)
+        body: JSON.stringify({ product: newProduct, sellerId: user?.uid })
       });
       if (res.ok) {
         fetchProducts();
@@ -815,7 +820,11 @@ export default function App() {
   const handleDeleteProduct = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/delete-product/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+          "x-seller-id": user?.uid || "",
+          "x-admin-role": userData?.role || ""
+        }
       });
       if (res.ok) {
         fetchProducts();
@@ -1028,7 +1037,34 @@ export default function App() {
     ).slice(0, 5);
   }, [searchQuery, products]);
 
-  return (
+    const sellerStats = useMemo(() => {
+      const totalSales = 0; // In a real app, this would come from an orders collection
+      const orderCount = 0;
+      const customers = new Set();
+      
+      let totalRating = 0;
+      let reviewCount = 0;
+
+      sellerProducts.forEach(p => {
+        if (p.reviews && p.reviews.length > 0) {
+          p.reviews.forEach(r => {
+            totalRating += r.rating;
+            reviewCount++;
+          });
+        }
+      });
+
+      const avgRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : "0.0";
+
+      return {
+        totalSales: "$0",
+        orderCount: 0,
+        customerCount: 0,
+        rating: avgRating
+      };
+    }, [sellerProducts]);
+
+    return (
     <ErrorBoundary>
       <div className={`min-h-screen transition-colors duration-500 ${
         theme === "dark" ? "bg-brand-bg text-white" : 
@@ -1064,10 +1100,10 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Jami Savdo", value: "$45,230", icon: TrendingUp, color: "text-emerald-400" },
-                  { label: "Buyurtmalar", value: "128", icon: Package, color: "text-blue-400" },
-                  { label: "Mijozlar", value: "89", icon: User, color: "text-purple-400" },
-                  { label: "Reyting", value: "4.9", icon: Heart, color: "text-red-400" },
+                  { label: "Jami Savdo", value: sellerStats.totalSales, icon: TrendingUp, color: "text-emerald-400" },
+                  { label: "Buyurtmalar", value: sellerStats.orderCount.toString(), icon: Package, color: "text-blue-400" },
+                  { label: "Mijozlar", value: sellerStats.customerCount.toString(), icon: User, color: "text-purple-400" },
+                  { label: "Reyting", value: sellerStats.rating, icon: Heart, color: "text-red-400" },
                 ].map((stat, i) => (
                   <div key={i} className="glass p-4 rounded-2xl border border-white/10">
                     <div className="flex justify-between items-start mb-2">
@@ -1083,7 +1119,7 @@ export default function App() {
                 <div className="lg:col-span-2 glass rounded-2xl border border-white/10 p-6">
                   <h3 className="text-sm font-black uppercase tracking-widest mb-6">Sotuvdagi mahsulotlar</h3>
                   <div className="space-y-4">
-                    {products.slice(0, 5).map(product => (
+                    {sellerProducts.map(product => (
                       <div key={product.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:border-brand-accent/30 transition-all cursor-pointer">
                         <div className="flex items-center gap-4">
                           <img src={product.image} alt="" className="w-10 h-10 object-contain p-1 bg-white rounded-lg" />
@@ -1095,11 +1131,21 @@ export default function App() {
                         <div className="flex items-center gap-6">
                           <div className="text-right">
                             <p className="text-[9px] text-gray-500 font-bold uppercase">Sotuvda</p>
-                            <p className="text-xs font-black">24 dona</p>
+                            <p className="text-xs font-black">{product.stockQuantity || 0} dona</p>
                           </div>
                           <div className="flex gap-2">
                             <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><Edit className="w-3.5 h-3.5 text-gray-400" /></button>
-                            <button className="p-1.5 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors"><Trash className="w-3.5 h-3.5" /></button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Haqiqatan ham ushbu mahsulotni o'chirmoqchimisiz?")) {
+                                  handleDeleteProduct(product.id);
+                                }
+                              }}
+                              className="p-1.5 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors"
+                            >
+                              <Trash className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1397,7 +1443,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -3 }}
                 onClick={() => setIsPCBuilderOpen(true)}
-                className="relative overflow-hidden rounded-[20px] p-3 cursor-pointer group flex flex-col justify-between min-h-[130px]"
+                className="relative overflow-hidden rounded-[20px] p-3 cursor-pointer group flex flex-col justify-between min-h-[110px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1434,7 +1480,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -3 }}
                 onClick={() => setIsSetupAnalystOpen(true)}
-                className="relative overflow-hidden rounded-[20px] p-3 cursor-pointer group flex flex-col justify-between min-h-[130px]"
+                className="relative overflow-hidden rounded-[20px] p-3 cursor-pointer group flex flex-col justify-between min-h-[110px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -2366,20 +2412,20 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="absolute bottom-16 right-0 w-[280px] sm:w-[320px] h-[400px] sm:h-[480px] glass rounded-[24px] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
+              className="absolute bottom-14 right-0 w-[240px] sm:w-[280px] h-[350px] sm:h-[420px] glass rounded-[20px] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
             >
-              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-brand-accent/10">
+              <div className="p-3 border-b border-white/10 flex justify-between items-center bg-brand-accent/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-brand-accent rounded-full flex items-center justify-center shadow-[0_0_10px_#00d4ff]">
-                    <Zap className="w-4 h-4 text-brand-bg" />
+                  <div className="w-6 h-6 bg-brand-accent rounded-full flex items-center justify-center shadow-[0_0_8px_#00d4ff]">
+                    <Zap className="w-3 h-3 text-brand-bg" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black tracking-tighter">S-AI ASSISTANT</h4>
-                    <p className="text-[8px] text-brand-accent font-bold uppercase tracking-widest">Online</p>
+                    <h4 className="text-[10px] font-black tracking-tighter">S-AI ASSISTANT</h4>
+                    <p className="text-[6px] text-brand-accent font-bold uppercase tracking-widest">Online</p>
                   </div>
                 </div>
-                <button onClick={() => setIsAIChatOpen(false)} className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
-                  <X className="w-4 h-4" />
+                <button onClick={() => setIsAIChatOpen(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+                  <X className="w-3 h-3" />
                 </button>
               </div>
 
@@ -2454,10 +2500,10 @@ export default function App() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-          className="w-12 h-12 bg-brand-accent text-brand-bg rounded-full shadow-[0_0_20px_#00d4ff] flex items-center justify-center relative group"
+          className="w-10 h-10 bg-brand-accent text-brand-bg rounded-full shadow-[0_0_15px_#00d4ff] flex items-center justify-center relative group"
         >
-          <MessageSquare className="w-6 h-6" />
-          <div className="absolute -top-10 right-0 bg-brand-accent text-brand-bg px-3 py-1.5 rounded-lg text-[9px] font-black tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          <MessageSquare className="w-5 h-5" />
+          <div className="absolute -top-10 right-0 bg-brand-accent text-brand-bg px-2 py-1 rounded-lg text-[8px] font-black tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             AI YORDAMCHI
           </div>
         </motion.button>

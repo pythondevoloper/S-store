@@ -304,6 +304,11 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
     });
   };
 
+  const visibleProducts = React.useMemo(() => {
+    if (isSuperAdmin) return products;
+    return products.filter(p => p.sellerId === userData?.uid);
+  }, [products, isSuperAdmin, userData]);
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-12 space-y-12">
       <div className="flex justify-between items-center">
@@ -1075,7 +1080,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                 <Package className="w-5 h-5 text-brand-accent" /> Current Inventory
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {products.map(product => (
+                {visibleProducts.map(product => (
                   <motion.div
                     key={product.id}
                     layout

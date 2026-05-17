@@ -632,9 +632,14 @@ async function startServer() {
 
   // API Routes
   app.get("/api/products", async (req, res) => {
-    const products = await readProducts();
+    const { sellerId } = req.query;
+    let products = await readProducts();
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
+
+    if (sellerId) {
+      products = products.filter((p: any) => p.sellerId === sellerId);
+    }
 
     // Ensure all products have reviews array and viewCount
     const processedProducts = products.map((p: any) => {
@@ -1103,9 +1108,13 @@ async function startServer() {
   });
 
   app.post("/api/admin/add-product", async (req, res) => {
-    const newProduct = req.body;
+    const { product: newProduct, sellerId } = req.body;
     const products = await readProducts();
-    const productWithId = { ...newProduct, id: Date.now().toString() };
+    const productWithId = { 
+      ...newProduct, 
+      id: Date.now().toString(),
+      sellerId: sellerId || null 
+    };
     products.push(productWithId);
     await writeProducts(products);
     res.status(201).json(productWithId);
@@ -1113,7 +1122,21 @@ async function startServer() {
 
   app.delete("/api/admin/delete-product/:id", async (req, res) => {
     const { id } = req.params;
+    const sellerId = req.headers["x-seller-id"];
+    const role = req.headers["x-admin-role"];
+    
     let products = await readProducts();
+    const product = products.find((p: any) => p.id === id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Only creator or SuperAdmin can delete
+    if (role !== "SuperAdmin" && product.sellerId !== sellerId) {
+      return res.status(403).json({ message: "Sizda ushbu mahsulotni o'chirishga ruxsat yo'q" });
+    }
+
     products = products.filter((p: any) => p.id !== id);
     await writeProducts(products);
     res.status(204).send();
