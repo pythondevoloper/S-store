@@ -14,7 +14,6 @@ import AISetupAnalyst from "./components/AISetupAnalyst";
 import SAIConfigurator from "./components/SAIConfigurator";
 import HardwareHealth from "./components/HardwareHealth";
 import StressTest from "./components/StressTest";
-import SEyeControl from "./components/SEyeControl";
 import { motion, AnimatePresence } from "motion/react";
 import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity, Flame, Video, Eye } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
@@ -81,38 +80,38 @@ function CurrencyCalculator({ rate }: { rate: number }) {
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="glass p-6 rounded-3xl w-64 space-y-4 border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+      className="glass p-4 rounded-2xl w-48 space-y-3 border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <Calculator className="w-4 h-4 text-brand-accent" />
-        <h4 className="text-xs font-bold uppercase tracking-widest">Currency Converter</h4>
+      <div className="flex items-center gap-2 mb-1">
+        <Calculator className="w-3 h-3 text-brand-accent" />
+        <h4 className="text-[9px] font-bold uppercase tracking-widest">Converter</h4>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+          <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
           <input
             type="number"
             value={usd}
             onChange={(e) => handleUsdChange(Number(e.target.value))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-8 pr-3 text-sm focus:outline-none focus:border-brand-accent transition-colors"
+            className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-7 pr-2 text-xs focus:outline-none focus:border-brand-accent transition-colors"
           />
         </div>
         
         <div className="flex justify-center">
-          <RefreshCw className="w-4 h-4 text-gray-700" />
+          <RefreshCw className="w-3 h-3 text-gray-700" />
         </div>
 
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">UZS</span>
-          <div className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-3 text-sm font-mono">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[8px] font-bold text-gray-500">UZS</span>
+          <div className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-8 pr-2 text-[10px] font-mono truncate">
             {uzs.toLocaleString()}
           </div>
         </div>
       </div>
       
-      <p className="text-[10px] text-gray-600 text-center font-bold uppercase">
-        1 USD = {rate.toLocaleString()} UZS
+      <p className="text-[8px] text-gray-600 text-center font-bold uppercase">
+        1 USD = {rate.toLocaleString()}
       </p>
     </motion.div>
   );
@@ -177,7 +176,6 @@ export default function App() {
   const [isSAIConfiguratorOpen, setIsSAIConfiguratorOpen] = useState(false);
   const [isHardwareHealthOpen, setIsHardwareHealthOpen] = useState(false);
   const [isStressTestOpen, setIsStressTestOpen] = useState(false);
-  const [isSEyeActive, setIsSEyeActive] = useState(false);
   const [focusedProductId, setFocusedProductId] = useState<string | null>(null);
   const [wowDiscounts, setWowDiscounts] = useState<Record<string, boolean>>({});
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
@@ -700,7 +698,7 @@ export default function App() {
       }),
       ref: refToken,
       exchangeRateUsed: exchangeRate,
-      status: "Pending",
+      status: customerData.testMode ? "Paid" : (customerData.paymentMethod === "Direct Card" ? "Paid" : "Awaiting Payment"),
       deliveryTime,
       createdAt: new Date().toISOString()
     };
@@ -758,7 +756,7 @@ export default function App() {
     confetti({
       particleCount: 50,
       spread: 60,
-      origin: { x: 0.1, y: 0.8 }, // Bottom left near S-EYE HUD
+      origin: { x: 0.1, y: 0.8 },
       colors: ["#00d4ff", "#ffffff"]
     });
   };
@@ -1032,7 +1030,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen transition-colors duration-500 ${theme === "dark" ? "bg-brand-bg text-white" : "bg-white text-black"}`}>
+      <div className={`min-h-screen transition-colors duration-500 ${
+        theme === "dark" ? "bg-brand-bg text-white" : 
+        theme === "midnight" ? "bg-[#020617] text-white midnight" :
+        "bg-slate-50 text-slate-900 light"
+      }`}>
         <AnimatePresence mode="wait">
         {view === "store" ? (
           <motion.div
@@ -1133,7 +1135,7 @@ export default function App() {
                               value={fastCheckoutName}
                               onChange={(e) => setFastCheckoutName(e.target.value)}
                               required
-                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
                             />
                           </div>
                           <div className="relative">
@@ -1144,7 +1146,7 @@ export default function App() {
                               value={fastCheckoutPhone}
                               onChange={(e) => setFastCheckoutPhone(e.target.value)}
                               required
-                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
                             />
                           </div>
 
@@ -1291,12 +1293,12 @@ export default function App() {
             </AnimatePresence>
 
             {/* Feature Banners Grid */}
-            <div className="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* PC Builder Banner */}
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsPCBuilderOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
+                className="relative overflow-hidden rounded-[24px] p-4 cursor-pointer group flex flex-col justify-between min-h-[160px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/20 via-brand-accent/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1333,7 +1335,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsSetupAnalystOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
+                className="relative overflow-hidden rounded-[24px] p-4 cursor-pointer group flex flex-col justify-between min-h-[160px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-purple-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1370,7 +1372,7 @@ export default function App() {
               <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setIsSAIConfiguratorOpen(true)}
-                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
+                className="relative overflow-hidden rounded-[24px] p-4 cursor-pointer group flex flex-col justify-between min-h-[160px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 via-emerald-600/5 to-transparent backdrop-blur-xl border border-white/10" />
                 <motion.div
@@ -1477,54 +1479,18 @@ export default function App() {
                 </div>
               </motion.div>
 
-              {/* S-EYE Control Banner */}
-              <motion.div
-                whileHover={{ y: -5 }}
-                onClick={() => setIsSEyeActive(!isSEyeActive)}
-                className="relative overflow-hidden rounded-[32px] p-5 md:p-6 cursor-pointer group flex flex-col justify-between min-h-[220px]"
-              >
-                <div className={`absolute inset-0 transition-all duration-500 ${isSEyeActive ? 'bg-cyan-500/30' : 'bg-cyan-600/20'} via-cyan-600/5 to-transparent backdrop-blur-xl border border-white/10`} />
-                <motion.div
-                  animate={{ 
-                    rotate: [360, 0],
-                    scale: [1, 1.3, 1]
-                  }}
-                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                  className="absolute -right-8 -top-8 w-32 h-32 bg-cyan-600/10 rounded-full blur-[40px]"
-                />
-                
-                <div className="relative space-y-3">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-600/20 rounded-full border border-cyan-600/30">
-                    <Video className="w-3 h-3 text-cyan-400" />
-                    <span className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.2em]">Technological</span>
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-white">
-                    S-EYE <span className="text-cyan-400">Control</span>
-                  </h2>
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
-                    Ko'z bilan boshqaring!
-                  </p>
-                </div>
-
-                <div className="relative flex items-end justify-between">
-                  <button className={`px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${isSEyeActive ? 'bg-red-600 text-white' : 'bg-cyan-600 text-white'}`}>
-                    {isSEyeActive ? 'O\'chirish' : 'Yoqish'}
-                  </button>
-                  <Eye className="w-16 h-16 text-cyan-400/40 drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]" />
-                </div>
-              </motion.div>
             </div>
 
             <main className="max-w-7xl mx-auto px-6 py-12">
               {/* Categories Dropdown Section */}
-              <div className="relative mb-12">
+              <div className="relative mb-8">
                 <button
                   onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-                  className="flex items-center gap-3 px-8 py-4 bg-brand-accent text-brand-bg rounded-2xl font-black tracking-widest uppercase shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:shadow-[0_0_50px_rgba(0,212,255,0.6)] transition-all group"
+                  className="flex items-center gap-2 px-6 py-3 bg-brand-accent text-brand-bg rounded-xl font-black tracking-widest uppercase shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:shadow-[0_0_40px_rgba(0,212,255,0.6)] transition-all group text-sm"
                 >
-                  <LayoutGrid className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
+                  <LayoutGrid className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
                   Bo'limlar
-                  <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
@@ -2268,7 +2234,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Sales Notifications */}
-      <div className="fixed bottom-24 left-8 z-[100] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed bottom-20 left-6 z-[100] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {recentSales.slice(0, 1).map((sale, idx) => (
             <motion.div
@@ -2276,16 +2242,16 @@ export default function App() {
               initial={{ opacity: 0, x: -50, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: -50, scale: 0.9 }}
-              className="glass p-4 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-4 max-w-[300px] pointer-events-auto"
+              className="glass p-3 rounded-xl border border-white/10 shadow-2xl flex items-center gap-3 max-w-[260px] pointer-events-auto"
             >
-              <div className="w-10 h-10 bg-brand-accent/20 rounded-full flex items-center justify-center border border-brand-accent/30">
-                <TrendingUp className="w-5 h-5 text-brand-accent" />
+              <div className="w-8 h-8 bg-brand-accent/20 rounded-full flex items-center justify-center border border-brand-accent/30 shrink-0">
+                <TrendingUp className="w-4 h-4 text-brand-accent" />
               </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-tighter text-white">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-tighter truncate">
                   {sale.customerName} hozirgina sotib oldi!
                 </p>
-                <p className="text-[10px] text-gray-400 font-bold uppercase truncate">
+                <p className="text-[9px] text-gray-400 font-bold uppercase truncate">
                   {sale.productName}
                 </p>
               </div>
@@ -2295,41 +2261,41 @@ export default function App() {
       </div>
 
       {/* AI Chat Widget */}
-      <div className="fixed bottom-8 right-8 z-50">
+      <div className="fixed bottom-6 right-6 z-50">
         <AnimatePresence>
           {isAIChatOpen && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="absolute bottom-20 right-0 w-[350px] h-[500px] glass rounded-[30px] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
+              className="absolute bottom-16 right-0 w-[280px] sm:w-[320px] h-[400px] sm:h-[480px] glass rounded-[24px] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-white/10 flex justify-between items-center bg-brand-accent/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-accent rounded-full flex items-center justify-center shadow-[0_0_15px_#00d4ff]">
-                    <Zap className="w-6 h-6 text-brand-bg" />
+              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-brand-accent/10">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-brand-accent rounded-full flex items-center justify-center shadow-[0_0_10px_#00d4ff]">
+                    <Zap className="w-4 h-4 text-brand-bg" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black tracking-tighter">S-AI ASSISTANT</h4>
-                    <p className="text-[10px] text-brand-accent font-bold uppercase tracking-widest">Online</p>
+                    <h4 className="text-xs font-black tracking-tighter">S-AI ASSISTANT</h4>
+                    <p className="text-[8px] text-brand-accent font-bold uppercase tracking-widest">Online</p>
                   </div>
                 </div>
-                <button onClick={() => setIsAIChatOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                  <X className="w-5 h-5" />
+                <button onClick={() => setIsAIChatOpen(false)} className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {aiMessages.length === 0 && (
-                  <div className="text-center space-y-4 pt-12">
-                    <MessageSquare className="w-12 h-12 text-gray-700 mx-auto" />
-                    <p className="text-sm text-gray-500 font-bold">Qanday yordam bera olaman?</p>
-                    <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="text-center space-y-3 pt-8">
+                    <MessageSquare className="w-10 h-10 text-gray-700 mx-auto" />
+                    <p className="text-xs text-gray-500 font-bold">Qanday yordam bera olaman?</p>
+                    <div className="flex flex-wrap gap-1.5 justify-center">
                       {["Sovg'a tavsiya qil", "Eng arzon mahsulotlar", "Yangi mahsulotlar"].map(hint => (
                         <button 
                           key={hint}
                           onClick={() => setAiInput(hint)}
-                          className="text-[10px] px-3 py-2 bg-white/5 border border-white/10 rounded-full hover:border-brand-accent transition-colors"
+                          className="text-[9px] px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-full hover:border-brand-accent transition-colors"
                         >
                           {hint}
                         </button>
@@ -2344,7 +2310,7 @@ export default function App() {
                     key={i}
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
+                    <div className={`max-w-[85%] p-3 rounded-xl text-xs ${
                       msg.role === "user" 
                         ? "bg-brand-accent text-brand-bg font-bold rounded-tr-none" 
                         : "bg-white/5 border border-white/10 text-gray-300 rounded-tl-none"
@@ -2355,30 +2321,30 @@ export default function App() {
                 ))}
                 {isAiLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl rounded-tl-none flex gap-1">
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-brand-accent rounded-full" />
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-brand-accent rounded-full" />
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-brand-accent rounded-full" />
+                    <div className="bg-white/5 border border-white/10 p-3 rounded-xl rounded-tl-none flex gap-1">
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1 h-1 bg-brand-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1 h-1 bg-brand-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1 h-1 bg-brand-accent rounded-full" />
                     </div>
                   </div>
                 )}
               </div>
 
-              <form onSubmit={handleAISend} className="p-4 border-t border-white/10 bg-black/20">
+              <form onSubmit={handleAISend} className="p-3 border-t border-white/10 bg-black/20">
                 <div className="relative">
                   <input
                     type="text"
                     value={aiInput}
                     onChange={(e) => setAiInput(e.target.value)}
-                    placeholder="Savolingizni yozing..."
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-4 pr-12 focus:outline-none focus:border-brand-accent transition-colors text-sm"
+                    placeholder="Savolingiz..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-brand-accent transition-colors text-xs"
                   />
                   <button 
                     type="submit"
                     disabled={!aiInput.trim() || isAiLoading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-accent text-brand-bg rounded-xl disabled:opacity-50"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-brand-accent text-brand-bg rounded-lg disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className="w-3 h-3" />
                   </button>
                 </div>
               </form>
@@ -2390,10 +2356,10 @@ export default function App() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-          className="w-16 h-16 bg-brand-accent text-brand-bg rounded-full shadow-[0_0_30px_#00d4ff] flex items-center justify-center relative group"
+          className="w-12 h-12 bg-brand-accent text-brand-bg rounded-full shadow-[0_0_20px_#00d4ff] flex items-center justify-center relative group"
         >
-          <MessageSquare className="w-8 h-8" />
-          <div className="absolute -top-12 right-0 bg-brand-accent text-brand-bg px-4 py-2 rounded-xl text-[10px] font-black tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          <MessageSquare className="w-6 h-6" />
+          <div className="absolute -top-10 right-0 bg-brand-accent text-brand-bg px-3 py-1.5 rounded-lg text-[9px] font-black tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             AI YORDAMCHI
           </div>
         </motion.button>
@@ -2544,7 +2510,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Currency Calculator Widget */}
-      <div className="fixed bottom-24 right-6 z-40 hidden md:block">
+      <div className="fixed bottom-20 right-4 z-40 hidden md:block">
         <CurrencyCalculator rate={exchangeRate} />
       </div>
 
@@ -2609,21 +2575,6 @@ export default function App() {
         products={products}
       />
 
-      <SEyeControl
-        isActive={isSEyeActive}
-        onToggle={() => setIsSEyeActive(!isSEyeActive)}
-        focusedProductId={focusedProductId}
-        onWowEffect={handleWowEffect}
-        onFavorite={(id) => {
-          const product = products.find(p => p.id === id);
-          if (product) {
-            setFavorites(prev => {
-              if (prev.find(f => f.id === id)) return prev;
-              return [...prev, product];
-            });
-          }
-        }}
-      />
 
       <footer className="border-t border-white/10 py-12 px-6 mt-24 bg-black/20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">

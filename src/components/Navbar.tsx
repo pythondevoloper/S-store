@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogOut, Cpu } from "lucide-react";
+import { ShoppingCart, Search, Menu, Heart, Moon, Sun, Package, Mic, Camera, ShieldCheck, Globe, ChevronDown, User, LogOut, Cpu, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
 import React, { useState, useRef, useEffect } from "react";
@@ -103,7 +103,9 @@ export default function Navbar({
 
   return (
     <nav className={`sticky top-0 z-50 px-6 py-4 flex items-center justify-between transition-colors duration-500 ${
-      theme === "dark" ? "glass" : "bg-white/80 backdrop-blur-xl border-b border-gray-100"
+      theme === "light" 
+        ? "bg-white/80 backdrop-blur-xl border-b border-gray-200" 
+        : "glass"
     }`}>
       <div className="flex items-center gap-8">
         {logo ? (
@@ -181,16 +183,16 @@ export default function Navbar({
 
       <div className="flex-1 max-w-md mx-8 relative hidden sm:block">
         <div className="relative">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === "light" ? "text-gray-400" : "text-gray-500"}`} />
           <input
             ref={searchInputRef}
             type="text"
             placeholder={t.searchPlaceholder}
             onChange={(e) => onSearch(e.target.value)}
             className={`w-full rounded-full py-2 pl-10 pr-20 text-sm focus:outline-none focus:border-brand-accent transition-all ${
-              theme === "dark" 
-              ? "bg-white/5 border border-white/10 text-white" 
-              : "bg-gray-100 border border-gray-200 text-black"
+              theme === "light" 
+              ? "bg-gray-100 border border-gray-200 text-slate-900" 
+              : "bg-white/5 border border-white/10 text-white"
             }`}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -321,11 +323,11 @@ export default function Navbar({
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute top-full right-0 mt-2 w-56 glass rounded-2xl border border-white/10 overflow-hidden z-[60] shadow-2xl"
               >
-                <div className="p-4 border-b border-white/5 bg-white/5">
-                  <p className="text-xs font-black truncate uppercase tracking-tighter">
+                <div className={`p-4 border-b ${theme === "light" ? "border-gray-100 bg-gray-50" : "border-white/5 bg-white/5"}`}>
+                  <p className={`text-xs font-black truncate uppercase tracking-tighter ${theme === "light" ? "text-slate-900" : "text-white"}`}>
                     {userData?.displayName || user.displayName}
                   </p>
-                  <p className="text-[10px] text-gray-500 truncate">
+                  <p className={`text-[10px] truncate ${theme === "light" ? "text-slate-500" : "text-gray-500"}`}>
                     {user.email}
                   </p>
                   {userData?.role && (
@@ -342,7 +344,9 @@ export default function Navbar({
                     onProfileClick();
                     setIsProfileMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-gray-300 hover:bg-white/5 transition-colors"
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-bold transition-colors ${
+                    theme === "light" ? "text-slate-700 hover:bg-gray-50" : "text-gray-300 hover:bg-white/5"
+                  }`}
                 >
                   <User className="w-4 h-4 text-brand-accent" />
                   Mening profilim
@@ -367,10 +371,12 @@ export default function Navbar({
         <button
           onClick={onToggleTheme}
           className={`p-2 rounded-full transition-all ${
-            theme === "dark" ? "hover:bg-white/5 text-brand-accent" : "hover:bg-gray-100 text-gray-600"
+            theme === "light" ? "hover:bg-gray-100 text-gray-600" : "hover:bg-white/5 text-brand-accent"
           }`}
         >
-          {theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+          {theme === "light" ? <Moon className="w-6 h-6" /> : 
+           theme === "dark" ? <Sparkles className="w-6 h-6" /> : 
+           <Sun className="w-6 h-6" />}
         </button>
         <button
           onClick={onFavoritesClick}

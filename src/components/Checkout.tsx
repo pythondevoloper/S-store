@@ -36,10 +36,13 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
     email: "",
     phone: "",
     address: "",
-    paymentMethod: "Telegram P2P",
+    paymentMethod: "Direct Card",
     promoCode: "",
     giftWrapping: false,
-    greetingCard: ""
+    greetingCard: "",
+    cardNumber: "",
+    cardExpiry: "",
+    cardCvc: ""
   });
   const [showMap, setShowMap] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,7 +125,7 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
     const finalTotalWithGift = finalTotal + (formData.giftWrapping ? 1 : 0);
 
     // High-tech processing simulation
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    await new Promise(resolve => setTimeout(resolve, 3500));
 
     try {
       const savedGroup = localStorage.getItem("active_group");
@@ -136,10 +139,11 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
         paymentMethod: formData.paymentMethod,
         promoCode: appliedCode,
         total: finalTotalWithGift,
-        testMode: false,
+        testMode: formData.cardNumber?.startsWith("4242"),
         giftWrapping: formData.giftWrapping,
         greetingCard: formData.greetingCard,
-        groupId: activeGroup?.id
+        groupId: activeGroup?.id,
+        cardNumber: formData.cardNumber ? `**** **** **** ${formData.cardNumber.slice(-4)}` : undefined
       });
       
       setOrderInfo(result);
@@ -149,14 +153,19 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
         const orderIdClean = result?.id?.replace("#S-", "") || "";
         const telegramUrl = `https://t.me/SSTOREPaymet_bot?start=ORDER_${orderIdClean}_PRICE_${totalUzs}`;
         
-        // Wait a moment for the success animation then redirect
         setTimeout(() => {
           window.location.href = telegramUrl;
         }, 1500);
-      }
-
-      if (result.status === "Awaiting Payment" || result.status === "Pending Payment") {
         setIsWaitingForPayment(true);
+      } else if (formData.paymentMethod === "Payme") {
+        if (result.paymeUrl) {
+          setTimeout(() => {
+            window.location.href = result.paymeUrl;
+          }, 1500);
+          setIsWaitingForPayment(true);
+        }
+      } else if (formData.paymentMethod === "Direct Card") {
+        setIsSuccess(true);
       } else {
         setIsSuccess(true);
       }
@@ -422,35 +431,142 @@ export default function Checkout({ isOpen, onClose, onCheckout, promoCodes, cart
                   </div>
 
                   {/* Payment Method Selection */}
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <label className="text-xs font-bold text-gray-500 uppercase">To'lov usuli</label>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
-                        className="py-4 rounded-2xl border bg-brand-accent/20 border-brand-accent text-brand-accent text-sm font-bold transition-all flex items-center justify-center gap-3"
+                        onClick={() => setFormData({ ...formData, paymentMethod: "Direct Card" })}
+                        className={`py-3 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-2 ${
+                          formData.paymentMethod === "Direct Card"
+                            ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20"
+                        }`}
                       >
-                        <CreditCard className="w-5 h-5" />
-                        Karta orqali to'lov (Telegram Bot)
+                        <CreditCard className="w-4 h-4" />
+                        Direct Card
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: "Payme" })}
+                        className={`py-3 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-2 ${
+                          formData.paymentMethod === "Payme"
+                            ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20"
+                        }`}
+                      >
+                        <img src="https://cdn.payme.uz/logo/payme_color.svg" alt="Payme" className="w-10 h-4 object-contain" />
+                        Payme
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: "Telegram P2P" })}
+                        className={`py-3 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-2 ${
+                          formData.paymentMethod === "Telegram P2P"
+                            ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20"
+                        }`}
+                      >
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.25.38-.51 1.07-.78 4.2-1.82 7-3.03 8.41-3.63 4.01-1.7 4.84-1.99 5.38-2 .12 0 .38.03.55.17.14.12.18.28.19.4z"/>
+                        </svg>
+                        Telegram Bot
                       </button>
                     </div>
+
+                    <AnimatePresence mode="wait">
+                      {formData.paymentMethod === "Direct Card" ? (
+                        <motion.div
+                          key="direct"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="space-y-3 p-4 bg-white/5 border border-white/10 rounded-2xl"
+                        >
+                          <div className="relative">
+                            <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                            <input
+                              required
+                              type="text"
+                              placeholder="Card Number (4242 ...)"
+                              value={formData.cardNumber}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "").substring(0, 16);
+                                const formatted = val.replace(/(.{4})/g, "$1 ").trim();
+                                setFormData({ ...formData, cardNumber: formatted });
+                              }}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm font-mono focus:border-brand-accent outline-none"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <input
+                              required
+                              type="text"
+                              placeholder="MM/YY"
+                              value={formData.cardExpiry}
+                              onChange={e => {
+                                let val = e.target.value.replace(/\D/g, "").substring(0, 4);
+                                if (val.length > 2) val = val.substring(0, 2) + "/" + val.substring(2);
+                                setFormData({ ...formData, cardExpiry: val });
+                              }}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm font-mono focus:border-brand-accent outline-none"
+                            />
+                            <input
+                              required
+                              type="text"
+                              placeholder="CVC"
+                              value={formData.cardCvc}
+                              onChange={e => setFormData({ ...formData, cardCvc: e.target.value.replace(/\D/g, "").substring(0, 3) })}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm font-mono focus:border-brand-accent outline-none"
+                            />
+                          </div>
+                          <p className="text-[9px] text-gray-500 italic text-center">
+                            * Demo mode: Use 4242 4242 4242 4242 for instant approval.
+                          </p>
+                        </motion.div>
+                      ) : formData.paymentMethod === "Payme" ? (
+                        <motion.div
+                          key="payme"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="p-4 bg-brand-accent/5 border border-brand-accent/20 rounded-2xl flex flex-col items-center gap-3"
+                        >
+                          <img src="https://cdn.payme.uz/logo/payme_color.svg" alt="Payme" className="w-24 h-8" />
+                          <p className="text-[10px] text-gray-400 text-center">
+                            Siz Payme Checkout tizimiga yo'naltirilasiz. To'lov xavfsiz va tez amalga oshiriladi.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="p2p"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="p-4 bg-brand-accent/5 border border-brand-accent/20 rounded-2xl space-y-3"
+                        >
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-500">Karta raqami:</span>
+                            <span className="font-mono font-bold text-brand-accent">{settings.cardNumber}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-500">Ega:</span>
+                            <span className="font-bold">{settings.cardName}</span>
+                          </div>
+                          <p className="text-[9px] text-gray-500 italic text-center pt-2 border-t border-white/5">
+                            Tugmani bosganingizdan so'ng, Telegram botga o'tasiz.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
-                  {/* Payment Info Box */}
-                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Karta raqami:</span>
-                      <span className="font-mono font-bold text-brand-accent">{settings.cardNumber}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Ega:</span>
-                      <span className="font-bold">{settings.cardName}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                      <span className="text-gray-500">To'lov miqdori:</span>
-                      <span className="text-lg font-black text-brand-accent">
-                        {formatCurrency(finalTotal + (formData.giftWrapping ? 1 : 0), isUzsMode, exchangeRate)}
-                      </span>
-                    </div>
+                  {/* Total Display */}
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500 uppercase">To'lov miqdori:</span>
+                    <span className="text-xl font-black text-brand-accent">
+                      {formatCurrency(finalTotal + (formData.giftWrapping ? 1 : 0), isUzsMode, exchangeRate)}
+                    </span>
                   </div>
 
                   {/* Gift Wrapping */}

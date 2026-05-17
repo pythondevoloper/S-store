@@ -12,6 +12,17 @@
     @apply bg-brand-bg text-white font-sans antialiased transition-colors duration-500;
   }
 
+  .light {
+    --color-brand-bg: #f8fafc;
+    --color-brand-accent: #0ea5e9;
+    --color-brand-glass: rgba(255, 255, 255, 0.7);
+    --color-brand-glass-border: rgba(0, 0, 0, 0.1);
+  }
+
+  .light body {
+    @apply bg-slate-50 text-slate-900;
+  }
+
   .midnight {
     --color-brand-bg: #020617;
     --color-brand-accent: #22d3ee;

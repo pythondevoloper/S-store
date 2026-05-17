@@ -1627,6 +1627,18 @@ async function startServer() {
     orders.push(newOrder);
     await writeOrders(orders);
 
+    // Payme Link Generation
+    let paymeUrl = "";
+    if (orderData.paymentMethod === "Payme") {
+      const merchantId = process.env.PAYME_MERCHANT_ID || "65c8a6f3b7f8e8e8e8e8e8e8"; // Placeholder
+      const amountTiyin = Math.round(orderData.total * exchangeRate * 100);
+      const successUrl = process.env.SUCCESS_URL || "https://s-store.uz/success";
+      
+      const params = `m=${merchantId};ac.order_id=${orderId};a=${amountTiyin};c=${successUrl}`;
+      const encodedParams = Buffer.from(params).toString("base64");
+      paymeUrl = `https://checkout.paycom.uz/${encodedParams}`;
+    }
+
     // Format Items for Table-like display
     const tableHeader = "`Mahsulot          Soni    Narxi`";
     const tableDivider = "`------------------------------`";
@@ -1693,8 +1705,148 @@ Iltimos, quyidagi tugma orqali to'lovni amalga oshiring:
       message: "Order placed successfully!", 
       id: orderId,
       orderId: orderId,
-      status: "Pending Payment"
+      status: "Pending Payment",
+      paymeUrl
     });
+  });
+
+  // Payme Webhook Handler (JSON-RPC 2.0)
+  app.post("/api/payme/callback", async (req, res) => {
+    const { method, params, id } = req.body;
+    const authHeader = req.headers.authorization;
+    const paymeKey = process.env.PAYME_KEY;
+
+    // Security Check
+    if (paymeKey) {
+      const expectedAuth = `Basic ${Buffer.from(`Paycom:${paymeKey}`).toString("base64")}`;
+      if (authHeader !== expectedAuth) {
+        return res.json({ error: { code: -32504, message: "Unauthorized" }, id });
+      }
+    }
+
+    const orders = await readOrders();
+
+    if (method === "CheckPerformTransaction") {
+      const orderId = params.account.order_id;
+      const amount = params.amount;
+      const order = orders.find((o: any) => o.id === orderId);
+
+      if (!order) {
+        return res.json({ error: { code: -31050, message: "Order not found" }, id });
+      }
+
+      const expectedAmount = Math.round(order.total * order.exchangeRateUsed * 100);
+      if (amount !== expectedAmount) {
+        return res.json({ error: { code: -31001, message: "Incorrect amount" }, id });
+      }
+
+      return res.json({ result: { allow: true }, id });
+    }
+
+    if (method === "CreateTransaction") {
+      const orderId = params.account.order_id;
+      const transactionId = params.id;
+      const order = orders.find((o: any) => o.id === orderId);
+
+      if (!order) {
+        return res.json({ error: { code: -31050, message: "Order not found" }, id });
+      }
+
+      // Store transaction info in order
+      order.payme_transaction_id = transactionId;
+      order.payme_state = 1;
+      order.payme_create_time = Date.now();
+      await writeOrders(orders);
+
+      return res.json({
+        result: {
+          create_time: order.payme_create_time,
+          transaction: transactionId,
+          state: 1
+        },
+        id
+      });
+    }
+
+    if (method === "PerformTransaction") {
+      const transactionId = params.id;
+      const order = orders.find((o: any) => o.payme_transaction_id === transactionId);
+
+      if (!order) {
+        return res.json({ error: { code: -31003, message: "Transaction not found" }, id });
+      }
+
+      if (order.payme_state === 1) {
+        order.payme_state = 2;
+        order.payme_perform_time = Date.now();
+        order.status = "Paid";
+        await writeOrders(orders);
+        
+        // Notify via Telegram/Email
+        await logActivity("INFO", `Payme payment confirmed for order ${order.id}`);
+        await sendTelegramMessage(`✅ *Payme to'lovi tasdiqlandi!*\nBuyurtma: \`${order.id}\` muvaffaqiyatli to'landi.`);
+        await sendEmail(order);
+      }
+
+      return res.json({
+        result: {
+          transaction: transactionId,
+          perform_time: order.payme_perform_time,
+          state: 2
+        },
+        id
+      });
+    }
+
+    if (method === "CheckTransaction") {
+      const transactionId = params.id;
+      const order = orders.find((o: any) => o.payme_transaction_id === transactionId);
+
+      if (!order) {
+        return res.json({ error: { code: -31003, message: "Transaction not found" }, id });
+      }
+
+      return res.json({
+        result: {
+          create_time: order.payme_create_time || 0,
+          perform_time: order.payme_perform_time || 0,
+          cancel_time: order.payme_cancel_time || 0,
+          transaction: transactionId,
+          state: order.payme_state || 0,
+          reason: order.payme_cancel_reason || null
+        },
+        id
+      });
+    }
+
+    if (method === "CancelTransaction") {
+      const transactionId = params.id;
+      const reason = params.reason;
+      const order = orders.find((o: any) => o.payme_transaction_id === transactionId);
+
+      if (!order) {
+        return res.json({ error: { code: -31003, message: "Transaction not found" }, id });
+      }
+
+      if (order.payme_state === 1 || order.payme_state === 2) {
+        order.payme_state = order.payme_state === 1 ? -1 : -2;
+        order.payme_cancel_time = Date.now();
+        order.payme_cancel_reason = reason;
+        order.status = "Cancelled";
+        await writeOrders(orders);
+      }
+
+      return res.json({
+        result: {
+          transaction: transactionId,
+          cancel_time: order.payme_cancel_time,
+          state: order.payme_state
+        },
+        id
+      });
+    }
+
+    res.json({ error: { code: -32601, message: "Method not found" }, id });
   });
 
   app.post("/api/fast-order", async (req, res) => {
