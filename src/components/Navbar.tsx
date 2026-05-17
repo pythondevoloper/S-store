@@ -30,6 +30,7 @@ interface NavbarProps {
   userData: any;
   onLogin: () => void;
   onLogout: () => void;
+  onSellerToggle?: () => void;
 }
 
 export default function Navbar({ 
@@ -56,7 +57,8 @@ export default function Navbar({
   user,
   userData,
   onLogin,
-  onLogout
+  onLogout,
+  onSellerToggle
 }: NavbarProps) {
   const [isListening, setIsListening] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -350,6 +352,19 @@ export default function Navbar({
                 >
                   <User className="w-4 h-4 text-brand-accent" />
                   Mening profilim
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSellerToggle?.();
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-bold transition-colors ${
+                    theme === "light" ? "text-slate-700 hover:bg-gray-50" : "text-gray-300 hover:bg-white/5"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Sotuvchi bo'limi
                 </button>
 
                 <button
