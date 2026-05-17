@@ -15,7 +15,7 @@ import SAIConfigurator from "./components/SAIConfigurator";
 import HardwareHealth from "./components/HardwareHealth";
 import StressTest from "./components/StressTest";
 import { motion, AnimatePresence } from "motion/react";
-import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity, Flame, Video, Eye, Edit, Trash } from "lucide-react";
+import { Lock, ArrowLeft, Monitor, Zap, Camera, ShieldCheck, LayoutGrid, Speaker, Calculator, DollarSign, RefreshCw, Heart, Search, Package, CheckCircle2, Truck, Clock, Moon, Sun, MessageSquare, Send, Box, X, Share2, Copy, Bell, Info, AlertTriangle, Globe, ChevronDown, User, ShoppingBag, TrendingUp, Award, BarChart3, Play, Map as MapIcon, MapPin, Cpu, Sparkles, Bot, Activity, Flame, Video, Eye, Edit, Trash, Plus, Image as ImageIcon, Tag, Hash, FileText } from "lucide-react";
 import { formatCurrency } from "./utils/currency";
 import LocationPicker from "./components/LocationPicker";
 import { Language, translations } from "./translations";
@@ -362,6 +362,18 @@ export default function App() {
     const saved = localStorage.getItem("s-store-language");
     return (saved as Language) || "uz";
   });
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [newSellerProduct, setNewSellerProduct] = useState<Omit<Product, "id">>({
+    name: "",
+    category: "Electronics",
+    price: 0,
+    image: "",
+    description: "",
+    specs: {},
+    stockQuantity: 0,
+    reviews: []
+  });
+
   const t = translations[language];
   
   // Admin State
@@ -1089,7 +1101,10 @@ export default function App() {
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Savdolaringizni boshqaring</p>
                 </div>
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px]">
+                  <button 
+                    onClick={() => setIsAddProductModalOpen(true)}
+                    className="px-4 py-2 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px]"
+                  >
                     Mahsulot qo'shish
                   </button>
                   <button onClick={() => setView("store")} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl font-black uppercase tracking-widest text-[10px]">
@@ -1837,6 +1852,194 @@ export default function App() {
               />
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Product Modal */}
+      <AnimatePresence>
+        {isAddProductModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddProductModalOpen(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="relative w-full max-w-2xl glass p-8 rounded-[40px] border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-brand-accent rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(0,212,255,0.4)]">
+                    <Plus className="w-6 h-6 text-brand-bg" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tighter uppercase">Yangi mahsulot qo'shish</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Do'koningizga mahsulot qo'shing</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsAddProductModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Mahsulot nomi</label>
+                    <div className="relative">
+                      <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input 
+                        type="text" 
+                        placeholder="Masalan: RTX 4090"
+                        value={newSellerProduct.name}
+                        onChange={e => setNewSellerProduct({...newSellerProduct, name: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Narxi ($)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input 
+                        type="number" 
+                        placeholder="0.00"
+                        value={newSellerProduct.price}
+                        onChange={e => setNewSellerProduct({...newSellerProduct, price: parseFloat(e.target.value)})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Kategoriya</label>
+                    <div className="relative">
+                      <LayoutGrid className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <select 
+                        value={newSellerProduct.category}
+                        onChange={e => setNewSellerProduct({...newSellerProduct, category: e.target.value})}
+                        className="w-full bg-[#111] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all appearance-none text-white cursor-pointer"
+                      >
+                        <option value="Electronics" className="bg-[#111] text-white">Electronics</option>
+                        <option value="PC Components" className="bg-[#111] text-white">PC Components</option>
+                        <option value="Accessories" className="bg-[#111] text-white">Accessories</option>
+                        <option value="Gaming" className="bg-[#111] text-white">Gaming</option>
+                        <option value="Smart Home" className="bg-[#111] text-white">Smart Home</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Soni (Stock)</label>
+                    <div className="relative">
+                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input 
+                        type="number" 
+                        placeholder="0"
+                        value={newSellerProduct.stockQuantity}
+                        onChange={e => setNewSellerProduct({...newSellerProduct, stockQuantity: parseInt(e.target.value)})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Mahsulot rasmi</label>
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewSellerProduct({...newSellerProduct, image: reader.result as string});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className={`w-full aspect-video rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-4 gap-2 ${
+                        newSellerProduct.image 
+                          ? "border-brand-accent/50 bg-brand-accent/5" 
+                          : "border-white/10 bg-white/5 hover:border-white/20"
+                      }`}>
+                        {newSellerProduct.image ? (
+                          <div className="relative w-full h-full">
+                            <img src={newSellerProduct.image} alt="Preview" className="w-full h-full object-contain rounded-lg" />
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setNewSellerProduct({...newSellerProduct, image: ""});
+                              }}
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors z-20"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-brand-accent transition-colors">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-300 text-center">Rasm yuklash uchun bosing yoki faylni tashlang</p>
+                            <p className="text-[8px] text-gray-500">PNG, JPG yoki WEBP (Max 5MB)</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Tavsif</label>
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-4 w-4 h-4 text-gray-500" />
+                      <textarea 
+                        placeholder="Mahsulot haqida batafsil..."
+                        value={newSellerProduct.description}
+                        onChange={e => setNewSellerProduct({...newSellerProduct, description: e.target.value})}
+                        rows={6}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  handleAddProduct(newSellerProduct);
+                  setIsAddProductModalOpen(false);
+                  setNewSellerProduct({
+                    name: "",
+                    category: "Electronics",
+                    price: 0,
+                    image: "",
+                    description: "",
+                    specs: {},
+                    stockQuantity: 0,
+                    reviews: []
+                  });
+                }}
+                className="w-full mt-8 py-4 bg-brand-accent text-brand-bg rounded-2xl font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:shadow-[0_0_50px_rgba(0,212,255,0.6)] transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5 fill-current" />
+                QO'SHISH
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
