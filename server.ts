@@ -22,6 +22,7 @@ const EXCHANGE_RATE_FILE = path.join(DATA_DIR, "exchange_rate.json");
 const ALERTS_FILE = path.join(DATA_DIR, "alerts.json");
 const LOGS_FILE = path.join(DATA_DIR, "logs.json");
 const GROUPS_FILE = path.join(DATA_DIR, "groups.json");
+const SELLERS_FILE = path.join(DATA_DIR, "sellers.json");
 
 const serverStartTime = Date.now();
 
@@ -333,6 +334,23 @@ async function writeGroups(groups: any[]) {
     await fs.writeFile(GROUPS_FILE, JSON.stringify(groups, null, 2));
   } catch (error) {
     console.error("Error writing groups:", error);
+  }
+}
+
+async function readSellers() {
+  try {
+    const data = await fs.readFile(SELLERS_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+async function writeSellers(sellers: any[]) {
+  try {
+    await fs.writeFile(SELLERS_FILE, JSON.stringify(sellers, null, 2));
+  } catch (error) {
+    console.error("Error writing sellers:", error);
   }
 }
 
@@ -1212,6 +1230,129 @@ async function startServer() {
       res.json({ success: true, user });
     } else {
       res.status(401).json({ message: "Face-ID verification failed. SuperAdmin only." });
+    }
+  });
+
+  // Seller Management
+  app.get("/api/admin/sellers", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+    const sellers = await readSellers();
+    res.json(sellers);
+  });
+
+  app.delete("/api/admin/sellers/:id", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+    const { id } = req.params;
+    let sellers = await readSellers();
+    sellers = sellers.filter((s: any) => s.id !== id);
+    await writeSellers(sellers);
+    res.status(204).send();
+  });
+
+  app.post("/api/seller/login", async (req, res) => {
+    const { username, code } = req.body;
+    const sellers = await readSellers();
+    const seller = sellers.find((s: any) => s.username === username && s.code === code);
+
+    if (seller) {
+      res.json(seller);
+    } else {
+      res.status(401).json({ message: "Noto'g'ri foydalanuvchi nomi yoki kod" });
+    }
+  });
+
+  // AI Assistant Route
+  app.post("/api/ai/chat", async (req, res) => {
+    const { message, previousMessages } = req.body;
+    
+    try {
+      const { GoogleGenAI, Type } = await import("@google/genai");
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("GEMINI_API_KEY NOT SET");
+
+      const ai = new GoogleGenAI({ apiKey });
+      const products = await readProducts();
+      
+      const productContext = products.map((p: any) => 
+        `- ${p.name}: ${p.price}$ (Category: ${p.category})`
+      ).join("\n");
+
+      const systemInstruction = `Siz "S STORE" innovatsion texnologiyalar do'konining aqlli yordamchisisiz (S-AI). 
+      Vazifalaringiz:
+      1. Mijozlarga mahsulot tanlashda yordam berish.
+      2. Yangi sotuvchilarni do'konimizga jalb qilish va ro'yxatdan o'tkazish.
+      
+      Sotuvchi ro'yxatdan o'tishni istasa "registerSeller" funksiyasini chaqiring.
+      Katalogimiz:
+      ${productContext}`;
+
+      const registerSellerTool = {
+        name: "registerSeller",
+        description: "Registers a new seller to S STORE",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            nickname: { type: Type.STRING, description: "Seller's business name or nickname" }
+          },
+          required: ["nickname"]
+        }
+      };
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [
+          ...previousMessages.map((m: any) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.text }] })),
+          { role: "user", parts: [{ text: message }] }
+        ],
+        config: {
+          systemInstruction,
+          tools: [{ functionDeclarations: [registerSellerTool] }]
+        }
+      });
+
+      const functionCalls = response.functionCalls;
+      if (functionCalls) {
+        for (const call of functionCalls) {
+          if (call.name === "registerSeller") {
+            const { nickname } = call.args as any;
+            const sellers = await readSellers();
+            const username = `seller_${Math.random().toString(36).substr(2, 5)}`;
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            const newSeller = {
+              id: Date.now().toString(),
+              nickname,
+              username,
+              code,
+              createdAt: new Date().toISOString()
+            };
+            
+            sellers.push(newSeller);
+            await writeSellers(sellers);
+            
+            const toolResponse = await ai.models.generateContent({
+              model: "gemini-3-flash-preview",
+              contents: [
+                { role: "user", parts: [{ text: message }] },
+                { role: "model", parts: [{ text: `Tabriklaymiz! Siz muvaffaqiyatli ro'yxatdan o'tdingiz.\nUsername: ${username}\nKod: ${code}\nUshbu ma'lumotlar orqali sotuvchi bo'limiga kira olasiz.` }] }
+              ]
+            });
+            
+            return res.json({ text: toolResponse.text });
+          }
+        }
+      }
+
+      res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("AI Error:", error);
+      res.status(500).json({ text: "Kechirasiz, xatolik yuz berdi." });
     }
   });
 

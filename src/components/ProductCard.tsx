@@ -133,18 +133,25 @@ export default function ProductCard({ product, onAddToCart, onShowDetails, isUzs
 
       <div className="p-3 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-1">
-          <div className="flex flex-col">
-            <span className="text-[8px] uppercase tracking-widest text-brand-accent font-bold">
-              {product.category}
-            </span>
-            {averageRating && (
+            <div className="flex flex-col">
+              <span className="text-[8px] uppercase tracking-widest text-brand-accent font-black">
+                {product.category || "General"}
+              </span>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-yellow-500 text-[10px]">★</span>
-                <span className="text-[10px] font-bold">{averageRating}</span>
-                <span className="text-[8px] text-gray-500">({product.reviews?.length})</span>
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span 
+                      key={star} 
+                      className={`text-[8px] ${star <= Math.round(Number(averageRating || 5)) ? "text-yellow-500" : "text-gray-600"}`}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <span className="text-[10px] font-black">{averageRating || "5.0"}</span>
+                <span className="text-[8px] text-gray-500 font-bold">({product.reviews?.length || 0})</span>
               </div>
-            )}
-          </div>
+            </div>
           <div className="flex flex-col items-end">
             {(product.isTrending || isFlashSale) && (
               <span className="text-[8px] text-gray-500 line-through">

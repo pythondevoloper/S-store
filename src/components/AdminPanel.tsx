@@ -45,10 +45,12 @@ interface PromoCode {
 
 export default function AdminPanel({ products, settings, adminUser, userData, onAddProduct, onDeleteProduct, onUpdateSettings, onLogout, exchangeRate, onUpdateExchangeRate }: AdminPanelProps) {
   const isSuperAdmin = adminUser?.role === "SuperAdmin" || userData?.role === "SuperAdmin";
-  const [activeTab, setActiveTab] = useState<"inventory" | "settings" | "promos" | "reviews" | "profile" | "diagnostics" | "paymentSettings" | "dashboard" | "botManager" | "orders" | "userManagement">("inventory");
+  const [activeTab, setActiveTab] = useState<"inventory" | "settings" | "promos" | "reviews" | "profile" | "diagnostics" | "paymentSettings" | "dashboard" | "botManager" | "orders" | "userManagement" | "sellers">("inventory");
   
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [sellers, setSellers] = useState<any[]>([]);
+  const [isSellersLoading, setIsSellersLoading] = useState(false);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [newUser, setNewUser] = useState({ username: "", password: "", role: "Manager" });
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -81,8 +83,41 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
       fetchDiagnostics();
       fetchOrders();
       fetchUsers();
+      fetchSellers();
     }
   }, [isSuperAdmin]);
+
+  const fetchSellers = async () => {
+    setIsSellersLoading(true);
+    try {
+      const res = await fetch("/api/admin/sellers", {
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSellers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+    } finally {
+      setIsSellersLoading(false);
+    }
+  };
+
+  const handleDeleteSeller = async (id: string) => {
+    if (!confirm("Haqiqatan ham ushbu sotuvchini o'chirib tashlamoqchimisiz?")) return;
+    try {
+      const res = await fetch(`/api/admin/sellers/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
+      });
+      if (res.ok) {
+        fetchSellers();
+      }
+    } catch (error) {
+      console.error("Error deleting seller:", error);
+    }
+  };
 
   const fetchUsers = async () => {
     setIsUsersLoading(true);
@@ -403,6 +438,14 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
               Diagnostika
             </button>
           </>
+        )}
+        {isSuperAdmin && (
+          <button
+            onClick={() => setActiveTab("sellers")}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === "sellers" ? "bg-brand-accent text-brand-bg" : "text-gray-500 hover:text-white"}`}
+          >
+            Sotuvchilar
+          </button>
         )}
       </div>
 
@@ -928,6 +971,60 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
           </motion.div>
         )}
 
+        {activeTab === "sellers" && isSuperAdmin && (
+          <motion.div
+            key="sellers"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Users className="w-5 h-5 text-brand-accent" /> Sotuvchilar Boshqaruvi
+              </h3>
+              <button 
+                onClick={fetchSellers}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+              >
+                <RefreshCw className={`w-5 h-5 ${isSellersLoading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sellers.map(seller => (
+                <div key={seller.id} className="glass p-6 rounded-[32px] border border-white/5 space-y-4 group relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 bg-brand-accent/20 rounded-2xl flex items-center justify-center">
+                      <User className="w-6 h-6 text-brand-accent" />
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteSeller(seller.id)}
+                      className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black">{seller.nickname}</h4>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Username: {seller.username}</p>
+                    <p className="text-[10px] text-brand-accent font-bold uppercase tracking-widest mt-1">Kod: {seller.code}</p>
+                  </div>
+                  <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                    <span className="text-[10px] text-gray-600 font-bold italic">{new Date(seller.createdAt).toLocaleDateString()}</span>
+                    <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest">Active</span>
+                  </div>
+                </div>
+              ))}
+              {sellers.length === 0 && (
+                <div className="col-span-full py-12 text-center text-gray-500 font-bold uppercase tracking-widest">
+                  Sotuvchilar hali yo'q
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {activeTab === "inventory" && (
           <motion.div
             key="inventory"
@@ -991,34 +1088,32 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                     </select>
                   </div>
 
-                  <div className="relative">
-                    <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <div className="flex gap-2 pl-12 pr-4">
-                      <input
-                        type="text"
-                        placeholder="Image URL or Upload"
-                        value={newProduct.image}
-                        onChange={e => setNewProduct({ ...newProduct, image: e.target.value })}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-brand-accent transition-colors text-sm"
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Mahsulot rasmi</label>
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewProduct({...newProduct, image: reader.result as string});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-accent transition-all cursor-pointer file:hidden"
                       />
-                      <label className="bg-white/10 hover:bg-white/20 p-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center">
-                        <Plus className="w-4 h-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setNewProduct({ ...newProduct, image: reader.result as string });
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </label>
+                      <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      {!newProduct.image && <span className="absolute left-12 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">Rasm yuklash</span>}
+                      {newProduct.image && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                          <img src={newProduct.image} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-white/20" />
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        </div>
+                      )}
                     </div>
                   </div>
 

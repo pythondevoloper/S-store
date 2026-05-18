@@ -377,7 +377,7 @@ export default function App() {
   const t = translations[language];
   
   // Admin State
-  const [view, setView] = useState<"store" | "admin" | "sellerDashboard">("store");
+  const [view, setView] = useState<"store" | "admin" | "sellerDashboard" | "sellerLogin">("store");
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -791,19 +791,22 @@ export default function App() {
   };
 
   const sellerProducts = useMemo(() => {
-    if (userData?.role === "SuperAdmin") return products;
-    return products.filter(p => p.sellerId === user?.uid);
-  }, [products, user, userData]);
+    if (userData?.role === "SuperAdmin" || adminUser?.role === "SuperAdmin") return products;
+    const sellerId = adminUser?.id || user?.uid;
+    return products.filter(p => p.sellerId === sellerId);
+  }, [products, user, userData, adminUser]);
 
   const handleAddProduct = async (newProduct: Omit<Product, "id">) => {
     try {
+      const sellerId = adminUser?.id || user?.uid;
       const res = await fetch("/api/admin/add-product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product: newProduct, sellerId: user?.uid })
+        body: JSON.stringify({ product: newProduct, sellerId })
       });
       if (res.ok) {
         fetchProducts();
+        setIsAddProductModalOpen(false);
       }
     } catch (error) {
       console.error("Error adding product:", error);
@@ -911,50 +914,20 @@ export default function App() {
     setIsAiLoading(true);
 
     try {
-      // Check for API key and prompt if missing
-      if (!process.env.GEMINI_API_KEY) {
-        const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
-        if (!hasKey) {
-          await (window as any).aistudio?.openSelectKey?.();
-        }
-      }
-
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      
-      const productContext = products.map((p: any) => 
-        `- ${p.name}: ${p.price} (Category: ${p.category}). Description: ${p.description}`
-      ).join("\n");
-
-      const systemInstruction = `You are the S STORE AI Shopping Assistant. 
-      Help users find the best tech products from our catalog. 
-      Be professional, futuristic, and helpful. 
-      If a user asks for recommendations, use the following product list as context:
-      ${productContext}
-      
-      Always mention the price and why it's a good choice. 
-      If a product is not in the list, politely say we don't have it yet but suggest alternatives.
-      Answer in the same language as the user (Uzbek or English).`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: userMsg,
-        config: {
-          systemInstruction
-        }
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMsg,
+          previousMessages: aiMessages
+        })
       });
-
-      setAiMessages(prev => [...prev, { role: "ai", text: response.text }]);
-    } catch (error: any) {
-      console.error("Gemini AI Error:", error);
       
-      // If API key is invalid or requested entity not found, prompt for key selection
-      const errorMsg = error?.message || "";
-      if (errorMsg.includes("API key not valid") || errorMsg.includes("Requested entity was not found")) {
-        await (window as any).aistudio?.openSelectKey?.();
-        setAiMessages(prev => [...prev, { role: "ai", text: "Iltimos, API kalitini tanlang va qayta urinib ko'ring." }]);
-      } else {
-        setAiMessages(prev => [...prev, { role: "ai", text: "Kechirasiz, hozirda AI yordamchisi bilan bog'lanib bo'lmadi." }]);
-      }
+      const data = await response.json();
+      setAiMessages(prev => [...prev, { role: "ai", text: data.text }]);
+    } catch (error: any) {
+      console.error("AI Error:", error);
+      setAiMessages(prev => [...prev, { role: "ai", text: "Kechirasiz, xatolik yuz berdi." }]);
     } finally {
       setIsAiLoading(false);
     }
@@ -1076,7 +1049,31 @@ export default function App() {
       };
     }, [sellerProducts]);
 
-    return (
+    const [sellerLogin, setSellerLogin] = useState({ username: "", code: "" });
+  const [sellerLoginError, setSellerLoginError] = useState("");
+
+  const handleSellerLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/seller/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sellerLogin)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminUser({ ...data, role: "Seller" });
+        setIsAdminAuthenticated(true);
+        setView("sellerDashboard");
+      } else {
+        setSellerLoginError("Noto'g'ri foydalanuvchi nomi yoki kod");
+      }
+    } catch (error) {
+      setSellerLoginError("Xatolik yuz berdi");
+    }
+  };
+
+  return (
     <ErrorBoundary>
       <div className={`min-h-screen transition-colors duration-500 ${
         theme === "dark" ? "bg-brand-bg text-white" : 
@@ -1084,7 +1081,40 @@ export default function App() {
         "bg-slate-50 text-slate-900 light"
       }`}>
         <AnimatePresence mode="wait">
-        {view === "sellerDashboard" ? (
+        {view === "sellerLogin" ? (
+          <motion.div
+            key="sellerLogin"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="min-h-screen flex items-center justify-center p-6 bg-brand-bg"
+          >
+            <div className="glass p-8 rounded-[40px] border border-white/10 max-w-md w-full space-y-8">
+              <div className="text-center">
+                <h2 className="text-3xl font-black uppercase tracking-tighter">Sotuvchi <span className="text-brand-accent">Login</span></h2>
+                <p className="text-xs text-gray-500 font-bold uppercase mt-2">Bot orqali berilgan ma'lumotlarni kiriting</p>
+              </div>
+              <form onSubmit={handleSellerLogin} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={sellerLogin.username}
+                  onChange={e => setSellerLogin({ ...sellerLogin, username: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:border-brand-accent outline-none"
+                />
+                <input
+                  type="password"
+                  placeholder="Kod"
+                  value={sellerLogin.code}
+                  onChange={e => setSellerLogin({ ...sellerLogin, code: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:border-brand-accent outline-none"
+                />
+                {sellerLoginError && <p className="text-red-500 text-xs font-bold">{sellerLoginError}</p>}
+                <button type="submit" className="w-full btn-primary py-4">Kirish</button>
+                <button type="button" onClick={() => setView("store")} className="w-full text-gray-500 font-bold text-xs uppercase pt-2">Bekor qilish</button>
+              </form>
+            </div>
+          </motion.div>
+        ) : view === "sellerDashboard" ? (
           <motion.div
             key="seller"
             initial={{ opacity: 0, y: 20 }}
@@ -1101,6 +1131,12 @@ export default function App() {
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Savdolaringizni boshqaring</p>
                 </div>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => setView("sellerLogin")}
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                  >
+                    Sotuvchi kirishi
+                  </button>
                   <button 
                     onClick={() => setIsAddProductModalOpen(true)}
                     className="px-4 py-2 bg-brand-accent text-brand-bg rounded-xl font-black uppercase tracking-widest text-[10px]"
@@ -1230,7 +1266,13 @@ export default function App() {
               userData={userData}
               onLogin={loginWithGoogle}
               onLogout={handleLogout}
-              onSellerToggle={() => setView("sellerDashboard")}
+              onSellerToggle={() => {
+                if (adminUser || userData?.role === "SuperAdmin") {
+                  setView("sellerDashboard");
+                } else {
+                  setView("sellerLogin");
+                }
+              }}
             />
 
             {/* Fast Checkout Modal */}
@@ -1658,36 +1700,38 @@ export default function App() {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-4 w-64 glass rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50"
+                      className="absolute top-full left-0 mt-4 w-64 glass rounded-[32px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 backdrop-blur-3xl"
                     >
-                      <div className="p-2">
+                      <div className="p-3 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar no-scrollbar">
                         <button
                           onClick={() => {
                             setActiveCategory("all");
                             setIsCategoryDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                          className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${
                             activeCategory === "all" 
-                            ? "bg-brand-accent text-brand-bg" 
+                            ? "bg-brand-accent text-brand-bg shadow-[0_0_20px_rgba(0,212,255,0.4)]" 
                             : "text-gray-400 hover:bg-white/5 hover:text-white"
                           }`}
                         >
-                          Barchasi
+                          <span>Barchasi</span>
+                          <LayoutGrid className={`w-3.5 h-3.5 ${activeCategory === "all" ? "text-brand-bg" : "text-gray-600 group-hover:text-brand-accent transition-colors"}`} />
                         </button>
-                        {Array.from(new Set(products.map(p => p.category))).map((cat) => (
+                        {Array.from(new Set(products.map(p => p.category?.trim()).filter(Boolean))).sort().map((cat) => (
                           <button
                             key={cat}
                             onClick={() => {
                               setActiveCategory(cat);
                               setIsCategoryDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                            className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${
                               activeCategory === cat 
-                              ? "bg-brand-accent text-brand-bg" 
+                              ? "bg-brand-accent text-brand-bg shadow-[0_0_20px_rgba(0,212,255,0.4)]" 
                               : "text-gray-400 hover:bg-white/5 hover:text-white"
                             }`}
                           >
-                            {cat}
+                            <span>{cat}</span>
+                            <Tag className={`w-3.5 h-3.5 ${activeCategory === cat ? "text-brand-bg" : "text-gray-600 group-hover:text-brand-accent transition-colors"}`} />
                           </button>
                         ))}
                       </div>
