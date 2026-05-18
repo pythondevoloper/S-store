@@ -119,11 +119,38 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
     }
   };
 
+  const [editingSeller, setEditingSeller] = useState<any>(null);
+
+  const handleUpdateSeller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSeller) return;
+    try {
+      const res = await fetch(`/api/admin/sellers/${editingSeller.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-role": adminUser?.role || userData?.role || ""
+        },
+        body: JSON.stringify(editingSeller)
+      });
+      if (res.ok) {
+        setEditingSeller(null);
+        fetchSellers();
+        alert("Sotuvchi ma'lumotlari yangilandi!");
+      } else {
+        const err = await res.json();
+        alert(`Xatolik: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Error updating seller:", error);
+    }
+  };
+
   const fetchUsers = async () => {
     setIsUsersLoading(true);
     try {
       const res = await fetch("/api/admin/users", {
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -143,7 +170,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-role": adminUser?.role || ""
+          "x-admin-role": adminUser?.role || userData?.role || ""
         },
         body: JSON.stringify(newUser)
       });
@@ -168,7 +195,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-role": adminUser?.role || ""
+          "x-admin-role": adminUser?.role || userData?.role || ""
         },
         body: JSON.stringify(editingUser)
       });
@@ -190,7 +217,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
     try {
       const res = await fetch(`/api/admin/users/${id}`, {
         method: "DELETE",
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       if (res.ok) {
         fetchUsers();
@@ -207,7 +234,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
     setIsOrdersLoading(true);
     try {
       const res = await fetch("/api/admin/orders", {
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       const data = await res.json();
       setOrders(data);
@@ -224,7 +251,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-role": adminUser?.role || ""
+          "x-admin-role": adminUser?.role || userData?.role || ""
         },
         body: JSON.stringify({ status })
       });
@@ -242,7 +269,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
   const fetchDiagnostics = async () => {
     try {
       const res = await fetch("/api/admin/diagnostics", {
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       const data = await res.json();
       setDiagnostics(data);
@@ -254,7 +281,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
   const fetchAnalytics = async () => {
     try {
       const res = await fetch("/api/admin/analytics", {
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       const data = await res.json();
       setAnalytics(data);
@@ -266,7 +293,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
   const fetchAdminPromos = async () => {
     try {
       const res = await fetch("/api/admin/promocodes", {
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       const data = await res.json();
       setPromoCodes(data);
@@ -282,7 +309,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-role": adminUser?.role || ""
+          "x-admin-role": adminUser?.role || userData?.role || ""
         },
         body: JSON.stringify(newPromo)
       });
@@ -303,7 +330,7 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
     try {
       const res = await fetch(`/api/admin/promocodes/${id}`, { 
         method: "DELETE",
-        headers: { "x-admin-role": adminUser?.role || "" }
+        headers: { "x-admin-role": adminUser?.role || userData?.role || "" }
       });
       if (res.ok) {
         setPromoMessage({ type: "success", text: "Promo code deleted." });
@@ -998,18 +1025,56 @@ export default function AdminPanel({ products, settings, adminUser, userData, on
                     <div className="w-12 h-12 bg-brand-accent/20 rounded-2xl flex items-center justify-center">
                       <User className="w-6 h-6 text-brand-accent" />
                     </div>
-                    <button 
-                      onClick={() => handleDeleteSeller(seller.id)}
-                      className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => setEditingSeller(seller)}
+                        className="p-2 text-gray-500 hover:text-brand-accent hover:bg-brand-accent/10 rounded-lg transition-all"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteSeller(seller.id)}
+                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xl font-black">{seller.nickname}</h4>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Username: {seller.username}</p>
-                    <p className="text-[10px] text-brand-accent font-bold uppercase tracking-widest mt-1">Kod: {seller.code}</p>
-                  </div>
+                  {editingSeller && editingSeller.id === seller.id ? (
+                    <form onSubmit={handleUpdateSeller} className="space-y-3">
+                      <input
+                        type="text"
+                        value={editingSeller.nickname}
+                        onChange={e => setEditingSeller({...editingSeller, nickname: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm"
+                        placeholder="Nickname"
+                      />
+                      <input
+                        type="text"
+                        value={editingSeller.username}
+                        onChange={e => setEditingSeller({...editingSeller, username: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm"
+                        placeholder="Username"
+                      />
+                      <input
+                        type="text"
+                        value={editingSeller.code}
+                        onChange={e => setEditingSeller({...editingSeller, code: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm"
+                        placeholder="Code"
+                      />
+                      <div className="flex gap-2">
+                        <button type="submit" className="flex-1 bg-brand-accent text-brand-bg py-2 rounded-xl text-xs font-bold">Save</button>
+                        <button type="button" onClick={() => setEditingSeller(null)} className="flex-1 bg-white/5 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div>
+                      <h4 className="text-xl font-black">{seller.nickname}</h4>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Username: {seller.username}</p>
+                      <p className="text-[10px] text-brand-accent font-bold uppercase tracking-widest mt-1">Kod: {seller.code}</p>
+                    </div>
+                  )}
                   <div className="pt-4 border-t border-white/10 flex justify-between items-center">
                     <span className="text-[10px] text-gray-600 font-bold italic">{new Date(seller.createdAt).toLocaleDateString()}</span>
                     <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest">Active</span>

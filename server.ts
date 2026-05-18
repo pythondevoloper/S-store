@@ -959,14 +959,14 @@ async function startServer() {
   });
 
   app.post("/api/admin/login", async (req, res) => {
-    const { password } = req.body;
+    const { username, password } = req.body;
     const users = await readUsers();
-    const user = users.find((u: any) => u.password === password);
+    const user = users.find((u: any) => u.username === username && u.password === password);
 
     if (user) {
       res.json(user);
     } else {
-      res.status(401).json({ message: "Invalid security key" });
+      res.status(401).json({ message: "Invalid username or security key" });
     }
   });
 
@@ -1255,6 +1255,22 @@ async function startServer() {
     res.status(204).send();
   });
 
+  app.put("/api/admin/sellers/:id", async (req, res) => {
+    const role = req.headers["x-admin-role"];
+    if (role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Access denied. SuperAdmin only." });
+    }
+    const { id } = req.params;
+    const updatedData = req.body;
+    const sellers = await readSellers();
+    const index = sellers.findIndex((s: any) => s.id === id);
+    if (index === -1) return res.status(404).json({ message: "Seller not found" });
+    
+    sellers[index] = { ...sellers[index], ...updatedData };
+    await writeSellers(sellers);
+    res.json(sellers[index]);
+  });
+
   app.post("/api/seller/login", async (req, res) => {
     const { username, code } = req.body;
     const sellers = await readSellers();
@@ -1274,11 +1290,23 @@ async function startServer() {
     try {
       const { GoogleGenAI, Type } = await import("@google/genai");
       const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("GEMINI_API_KEY NOT SET");
-
-      const ai = new GoogleGenAI({ apiKey });
-      const products = await readProducts();
+      console.log("Gemini API Key present:", !!apiKey);
       
+      if (!apiKey) {
+        console.error("GEMINI_API_KEY environment variable is not set.");
+        return res.status(500).json({ text: "AI yordamchisi sozlanmagan. Iltimos, API kalitini tekshiring." });
+      }
+
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+      
+      const products = await readProducts();
       const productContext = products.map((p: any) => 
         `- ${p.name}: ${p.price}$ (Category: ${p.category})`
       ).join("\n");
@@ -1304,12 +1332,17 @@ async function startServer() {
         }
       };
 
+      const contents = [
+        ...previousMessages.map((m: any) => ({ 
+          role: m.role === "user" ? "user" : "model", 
+          parts: [{ text: m.text }] 
+        })),
+        { role: "user", parts: [{ text: message }] }
+      ];
+
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          ...previousMessages.map((m: any) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.text }] })),
-          { role: "user", parts: [{ text: message }] }
-        ],
+        model: "gemini-flash-latest",
+        contents,
         config: {
           systemInstruction,
           tools: [{ functionDeclarations: [registerSellerTool] }]
@@ -1317,7 +1350,7 @@ async function startServer() {
       });
 
       const functionCalls = response.functionCalls;
-      if (functionCalls) {
+      if (functionCalls && functionCalls.length > 0) {
         for (const call of functionCalls) {
           if (call.name === "registerSeller") {
             const { nickname } = call.args as any;
@@ -1336,23 +1369,17 @@ async function startServer() {
             sellers.push(newSeller);
             await writeSellers(sellers);
             
-            const toolResponse = await ai.models.generateContent({
-              model: "gemini-3-flash-preview",
-              contents: [
-                { role: "user", parts: [{ text: message }] },
-                { role: "model", parts: [{ text: `Tabriklaymiz! Siz muvaffaqiyatli ro'yxatdan o'tdingiz.\nUsername: ${username}\nKod: ${code}\nUshbu ma'lumotlar orqali sotuvchi bo'limiga kira olasiz.` }] }
-              ]
+            return res.json({ 
+              text: `Tabriklaymiz! Siz muvaffaqiyatli ro'yxatdan o'tdingiz.\n\n👤 Nickname: ${nickname}\n🔑 Username: ${username}\n🔐 Kod: ${code}\n\nUshbu ma'lumotlar orqali sotuvchi bo'limiga kira olasiz.` 
             });
-            
-            return res.json({ text: toolResponse.text });
           }
         }
       }
 
-      res.json({ text: response.text });
+      res.json({ text: response.text || "Kechirasiz, javob olib bo'lmadi." });
     } catch (error: any) {
-      console.error("AI Error:", error);
-      res.status(500).json({ text: "Kechirasiz, xatolik yuz berdi." });
+      console.error("AI Assistant Error:", error);
+      res.status(500).json({ text: "Kechirasiz, AI xizmatida xatolik yuz berdi. Iltimos, keyinroq urinib ko'ring." });
     }
   });
 

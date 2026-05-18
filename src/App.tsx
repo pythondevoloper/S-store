@@ -379,6 +379,7 @@ export default function App() {
   // Admin State
   const [view, setView] = useState<"store" | "admin" | "sellerDashboard" | "sellerLogin">("store");
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [adminUser, setAdminUser] = useState<any>(null);
@@ -941,7 +942,10 @@ export default function App() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: adminPassword })
+        body: JSON.stringify({ 
+          username: adminUsername,
+          password: adminPassword 
+        })
       });
       
       if (res.ok) {
@@ -1839,9 +1843,16 @@ export default function App() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleAdminLogin} className="space-y-8">
+                  <form onSubmit={handleAdminLogin} className="space-y-6">
                     <div className="space-y-4">
                       <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Username"
+                          value={adminUsername}
+                          onChange={e => setAdminUsername(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 focus:outline-none focus:border-brand-accent transition-colors text-center font-bold text-sm"
+                        />
                         <input
                           type="password"
                           placeholder="Security Key"
@@ -1853,7 +1864,7 @@ export default function App() {
                       </div>
 
                       <button 
-                        disabled={!adminPassword}
+                        disabled={!adminUsername || !adminPassword}
                         type="submit" 
                         className="w-full py-4 rounded-xl bg-brand-accent text-brand-bg font-black tracking-widest uppercase hover:shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all disabled:opacity-50"
                       >
